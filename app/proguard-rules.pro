@@ -15,3 +15,7 @@
 
 # Keep WorkManager workers
 -keep class com.articlevault.worker.** { *; }
+
+# LiteRT-LM
+-keep class com.google.ai.edge.litertlm.** { *; }
+-dontwarn com.google.ai.edge.litertlm.**

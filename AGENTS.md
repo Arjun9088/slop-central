@@ -1,0 +1,95 @@
+# ArticleVault — Agent Guide
+
+## Build & Run
+
+JAVA_HOME must point to Android Studio's bundled JBR:
+```
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat installDebug    # build + install to connected device
+.\gradlew.bat assembleDebug   # build only
+```
+ADB lives at `C:\Users\Arjun\platform-tools\adb.exe` (not on PATH by default).
+
+## Architecture
+
+Single-module Android app. All source under `app/src/main/java/com/articlevault/`.
+
+| Layer | Key files |
+|---|---|
+| Data | `data/db/entity/Article.kt`, `data/db/dao/ArticleDao.kt`, `data/repository/ArticleRepository.kt` |
+| DI | `di/AppModule.kt` — provides Room DB, WorkManager, DAOs |
+| Workers | `worker/DownloadWorker.kt`, `ExtractWorker.kt`, `TagWorker.kt` |
+| ML | `ml/LlmSummarizer.kt`, `ml/TagClassifier.kt` |
+| Models | `data/model/ModelRepository.kt`, `ui/models/ModelSelectionScreen.kt` |
+| UI | `ui/MainActivity.kt` (nav host), `ui/list/`, `ui/detail/`, `ui/search/` |
+
+## Critical Gotchas
+
+### Room Database
+- **DB is on external storage** (`getExternalFilesDir`), not internal. Persists across reinstalls.
+- **Version must be bumped** in `AppDatabase.kt` when schema changes. Add migration in `AppModule.kt`.
+- Current version: **4**. Migrations: 2→3 (add htmlContent), 3→4 (add summary).
+- `Article.extractedText` maps to DB column `content` via `@ColumnInfo(name = "content")` — required for FTS4 `contentEntity` to match.
+- FTS4 uses `@Fts4(contentEntity = Article::class)` — Room auto-syncs via triggers. No manual FTS insert needed.
+
+### WorkManager
+- All workers **must** have `@HiltWorker` annotation or they silently fail.
+- Default WorkManager initializer is **disabled** in manifest (we use `Configuration.Provider` in `ArticleVaultApp`).
+- Worker chain: `Download → Extract → Tag`. No IndexWorker (DownloadWorker saves directly to DB).
+- WorkManager `Data` has a **~10KB limit**. Large text must be saved to DB/files first, not passed through the chain.
+
+### DownloadWorker
+- WebView **must** run on `Dispatchers.Main`. Uses `withContext(Dispatchers.Main)` + `suspendCancellableCoroutine`.
+- `return` is prohibited inside non-inline lambdas (callbacks). Use `if (!isDone) { ... }` instead.
+- HTML is extracted via `evaluateJavascript` which returns JSON-encoded strings. Must unescape with `JSONTokener`.
+- CSS is inlined into the HTML for offline viewing before saving.
+
+### MediaPipe LlmInference
+- Requires `.task` format (multi-prefill-seq). `.tflite` and `.litertlm` do **not** work.
+- `Backend` enum is at `LlmInference.Backend`, not `LlmInferenceOptions.Backend`.
+- Must set `setPreferredBackend(LlmInference.Backend.CPU)` or it crashes.
+- LiteRT-LM (faster engine) requires Kotlin 2.3.0 — blocked by KSP compatibility. Do not attempt upgrade until KSP supports it.
+- Models >500MB will OOM on devices with <2GB free RAM. Catch `OutOfMemoryError`.
+
+### Hilt
+- Workers use `@AssistedInject` + `@Assisted`. Do **not** put `@ApplicationContext` on `@Assisted` params — Dagger rejects it.
+- `WorkManager` must be provided via `@Provides` in `AppModule` (not auto-injectable).
+
+### UI
+- Compose with Material3 dark theme. No light theme.
+- Bottom nav bar hidden on `article/{id}` and `models` routes.
+- Long-press on article cards → context menu (Summarize / Delete).
+- Summaries stored in `Article.summary` column. Can be regenerated.
+- `Icons.Default.Bookmark` does not exist — use `Icons.Default.Star` or `Icons.AutoMirrored.Filled.List`.
+
+### ML Kit Entity Extraction
+- Dependency: `com.google.mlkit:entity-extraction:16.0.0-beta6` (not stable).
+- `com.google.mlkit:text-classification` **does not exist** as a standalone library.
+- Keyword-based category classifier in `TagClassifier.kt` is the fallback.
+
+## Key Dependency Versions
+
+| Dep | Version | Notes |
+|---|---|---|
+| Kotlin | 2.1.20 | LiteRT-LM needs 2.3.0 (blocked) |
+| KSP | 2.1.20-1.0.32 | Must match Kotlin |
+| Hilt | 2.56.2 | |
+| Room | 2.6.1 | |
+| MediaPipe tasks-genai | 0.10.22 | LlmInference API |
+| Compose BOM | 2024.12.01 | |
+| minSdk | 26 | All devices support adaptive icons |
+
+## Adding a New Room Migration
+
+1. Bump `version` in `AppDatabase.kt`
+2. Add `Migration(N-1, N)` object in `AppModule.provideDatabase()`
+3. Add it to `.addMigrations(...)` chain
+4. Do **not** use `fallbackToDestructiveMigration()` — it wipes user data
+
+## File Locations on Device
+
+| Path | Content |
+|---|---|
+| `/Android/data/com.articlevault/files/article_vault.db` | SQLite database |
+| `/Android/data/com.articlevault/files/models/` | Downloaded LLM models |
+| `/data/data/com.articlevault/shared_prefs/model_prefs.json` | Selected model + HF token |

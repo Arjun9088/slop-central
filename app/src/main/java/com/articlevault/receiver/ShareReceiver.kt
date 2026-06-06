@@ -8,6 +8,7 @@ import androidx.work.*
 import com.articlevault.worker.ArticleWorkerKeys
 import com.articlevault.worker.DownloadWorker
 import com.articlevault.worker.ExtractWorker
+import com.articlevault.worker.SummarizeWorker
 import com.articlevault.worker.TagWorker
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.UUID
@@ -85,6 +86,11 @@ class ShareReceiver : ComponentActivity() {
                 .addTag("article-$articleId")
                 .build()
 
+            val summarizeRequest = OneTimeWorkRequestBuilder<SummarizeWorker>()
+                .setInputData(workDataOf(ArticleWorkerKeys.ARTICLE_ID to articleId))
+                .addTag("article-$articleId")
+                .build()
+
             workManager
                 .beginUniqueWork(
                     "save-article-$articleId",
@@ -93,6 +99,7 @@ class ShareReceiver : ComponentActivity() {
                 )
                 .then(extractRequest)
                 .then(tagRequest)
+                .then(summarizeRequest)
                 .enqueue()
         }
     }

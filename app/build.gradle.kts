@@ -64,8 +64,8 @@ dependencies {
     ksp("androidx.room:room-compiler:$roomVersion")
 
     // Hilt DI
-    implementation("com.google.dagger:hilt-android:2.53.1")
-    ksp("com.google.dagger:hilt-android-compiler:2.53.1")
+    implementation("com.google.dagger:hilt-android:2.56.2")
+    ksp("com.google.dagger:hilt-android-compiler:2.56.2")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation("androidx.hilt:hilt-work:1.2.0")
     ksp("androidx.hilt:hilt-compiler:1.2.0")
@@ -84,4 +84,13 @@ dependencies {
 
     // Core
     implementation("androidx.core:core-ktx:1.15.0")
+
+    // MediaPipe GenAI — on-device LLM inference (compatible with Kotlin 2.1.x)
+    implementation("com.google.mediapipe:tasks-genai:0.10.22")
+
+    // OkHttp — model download from HuggingFace
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // JSON parsing for HuggingFace API
+    implementation("org.json:json:20231013")
 }
