@@ -5,10 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,145 +27,156 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.articlevault.ml.DomainClassifier
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
+    onBack: () -> Unit = {},
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header
-        item {
-            Text(
-                "Reading Stats",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Reading Stats") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Overview cards
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Star,
+                        label = "Saved",
+                        value = state.totalArticles.toString(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Done,
+                        label = "Read",
+                        value = state.totalRead.toString(),
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Info,
+                        label = "Avg Read",
+                        value = "${state.avgReadingTimeMinutes}m",
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
 
-        // Overview cards
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Star,
-                    label = "Saved",
-                    value = state.totalArticles.toString(),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Done,
-                    label = "Read",
-                    value = state.totalRead.toString(),
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Info,
-                    label = "Avg Read",
-                    value = "${state.avgReadingTimeMinutes}m",
-                    color = MaterialTheme.colorScheme.secondary
+            // Words stats
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Info,
+                        label = "Words Saved",
+                        value = formatNumber(state.totalWords),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Done,
+                        label = "Words Read",
+                        value = formatNumber(state.totalWordsRead),
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+
+            // Streak section
+            item {
+                StreakCard(
+                    currentStreak = state.currentStreak,
+                    longestStreak = state.longestStreak
                 )
             }
+
+            // Top domains
+            if (state.topDomains.isNotEmpty()) {
+                item {
+                    Text(
+                        "Top Sources",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                item {
+                    DomainChart(domains = state.topDomains)
+                }
+            }
+
+            // Domain type distribution
+            if (state.domainTypeDistribution.isNotEmpty()) {
+                item {
+                    Text(
+                        "Content Mix",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                item {
+                    DomainTypeChart(types = state.domainTypeDistribution)
+                }
+            }
+
+            // Reading activity (last 30 days)
+            if (state.readingActivity.isNotEmpty()) {
+                item {
+                    Text(
+                        "Articles Read (Last 30 Days)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                item {
+                    ActivityChart(data = state.readingActivity)
+                }
+            }
+
+            // Articles saved activity
+            if (state.articlesPerDay.isNotEmpty()) {
+                item {
+                    Text(
+                        "Articles Saved (Last 30 Days)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                item {
+                    ActivityChart(data = state.articlesPerDay)
+                }
+            }
+
+            // Bottom spacer
+            item { Spacer(modifier = Modifier.height(32.dp)) }
         }
-
-        // Words stats
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Info,
-                    label = "Words Saved",
-                    value = formatNumber(state.totalWords),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Done,
-                    label = "Words Read",
-                    value = formatNumber(state.totalWordsRead),
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
-        }
-
-        // Streak section
-        item {
-            StreakCard(
-                currentStreak = state.currentStreak,
-                longestStreak = state.longestStreak
-            )
-        }
-
-        // Top domains
-        if (state.topDomains.isNotEmpty()) {
-            item {
-                Text(
-                    "Top Sources",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            item {
-                DomainChart(domains = state.topDomains)
-            }
-        }
-
-        // Domain type distribution
-        if (state.domainTypeDistribution.isNotEmpty()) {
-            item {
-                Text(
-                    "Content Mix",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            item {
-                DomainTypeChart(types = state.domainTypeDistribution)
-            }
-        }
-
-        // Reading activity (last 30 days)
-        if (state.readingActivity.isNotEmpty()) {
-            item {
-                Text(
-                    "Articles Read (Last 30 Days)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            item {
-                ActivityChart(data = state.readingActivity)
-            }
-        }
-
-        // Articles saved activity
-        if (state.articlesPerDay.isNotEmpty()) {
-            item {
-                Text(
-                    "Articles Saved (Last 30 Days)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            item {
-                ActivityChart(data = state.articlesPerDay)
-            }
-        }
-
-        // Bottom spacer
-        item { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 

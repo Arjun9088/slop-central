@@ -1,13 +1,7 @@
 package com.articlevault.ml
 
-import android.content.Context
 import android.util.Log
 import com.articlevault.data.model.ModelRepository
-import com.google.mediapipe.tasks.genai.llminference.LlmInference
-import com.google.mediapipe.tasks.genai.llminference.LlmInference.LlmInferenceOptions
-import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
-import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession.LlmInferenceSessionOptions
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -22,12 +16,8 @@ import javax.inject.Singleton
 
 @Singleton
 class LlmSummarizer @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val modelRepository: ModelRepository
 ) {
-    private var llmInference: LlmInference? = null
-    private var currentModelPath: String? = null
-
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
@@ -49,20 +39,10 @@ Rules:
     }
 
     suspend fun summarize(text: String): String = withContext(Dispatchers.Default) {
-        val mode = modelRepository.getSummarizationMode()
-
-        if (mode == "api") {
-            summarizeViaApi(text)
-        } else {
-            summarizeLocal(text)
-        }
-    }
-
-    private suspend fun summarizeViaApi(text: String): String {
         val endpoint = modelRepository.getApiEndpoint()
-            ?: throw IllegalStateException("API endpoint not configured. Set it in Models → API Settings.")
+            ?: throw IllegalStateException("API endpoint not configured. Set it in Settings → API Settings.")
         val apiKey = modelRepository.getApiKey()
-            ?: throw IllegalStateException("API key not configured. Set it in Models → API Settings.")
+            ?: throw IllegalStateException("API key not configured. Set it in Settings → API Settings.")
         val model = modelRepository.getApiModel()
 
         val maxChars = 8000
@@ -107,80 +87,14 @@ Rules:
             .getString("content")
 
         Log.d(TAG, "API summary received: ${content.length} chars")
-        return content.trim()
+        return@withContext content.trim()
     }
 
-    private suspend fun summarizeLocal(text: String): String {
-        val modelPath = modelRepository.getSelectedModelPath()
-            ?: throw IllegalStateException("No AI model downloaded. Go to the Models tab to download one, or switch to API mode.")
-
-        try {
-            ensureEngine(modelPath)
-
-            val maxChars = 3000
-            val truncated = if (text.length > maxChars) text.take(maxChars) + "..." else text
-            val prompt = "$SYSTEM_PROMPT\n\nSummarize this article:\n\n$truncated"
-
-            Log.d(TAG, "Generating summary with local model: $modelPath")
-
-            val sessionOptions = LlmInferenceSessionOptions.builder()
-                .setTopK(40)
-                .setTopP(0.95f)
-                .setTemperature(0.7f)
-                .build()
-
-            val session = LlmInferenceSession.createFromOptions(llmInference!!, sessionOptions)
-            session.addQueryChunk(prompt)
-            val result = session.generateResponse()
-            session.close()
-
-            Log.d(TAG, "Local summary generated: ${result.length} chars")
-            return result.trim()
-        } catch (e: OutOfMemoryError) {
-            Log.e(TAG, "Out of memory loading model", e)
-            closeEngine()
-            throw IllegalStateException("Not enough memory for this model. Try a smaller model or use API mode.")
-        } catch (e: Exception) {
-            Log.e(TAG, "Local summarization failed: ${e.message}", e)
-            throw e
-        }
-    }
-
-    fun hasModel(): Boolean = modelRepository.getSelectedModelPath() != null
     fun isApiConfigured(): Boolean = modelRepository.isApiConfigured()
-    fun getSummarizationMode(): String = modelRepository.getSummarizationMode()
 
-    fun getSelectedModelName(): String? {
-        val mode = modelRepository.getSummarizationMode()
-        if (mode == "api") {
-            return "API: ${modelRepository.getApiModel()}"
-        }
-        val path = modelRepository.getSelectedModelPath() ?: return null
-        return path.substringAfterLast("/").substringBeforeLast(".")
-    }
-
-    private fun ensureEngine(modelPath: String) {
-        if (llmInference != null && currentModelPath == modelPath) return
-        closeEngine()
-
-        Log.d(TAG, "Loading model: $modelPath (this may take a minute)")
-        try {
-            val options = LlmInferenceOptions.builder()
-                .setModelPath(modelPath)
-                .setMaxTokens(1024)
-                .setPreferredBackend(LlmInference.Backend.CPU)
-                .build()
-            llmInference = LlmInference.createFromOptions(context, options)
-            Log.d(TAG, "Engine loaded with CPU backend")
-        } catch (e: OutOfMemoryError) {
-            throw IllegalStateException("Not enough memory to load this model. Try a smaller model or use API mode.")
-        }
-        currentModelPath = modelPath
-    }
-
-    fun closeEngine() {
-        llmInference?.close()
-        llmInference = null
-        currentModelPath = null
+    fun getSelectedModelName(): String {
+        val model = modelRepository.getApiModel()
+        val endpoint = modelRepository.getApiEndpoint() ?: "API"
+        return "$model via $endpoint"
     }
 }

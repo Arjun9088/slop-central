@@ -85,10 +85,7 @@ dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.15.0")
 
-    // MediaPipe GenAI — on-device LLM inference (compatible with Kotlin 2.1.x)
-    implementation("com.google.mediapipe:tasks-genai:0.10.22")
-
-    // OkHttp — model download from HuggingFace
+    // OkHttp — for API calls and downloads
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // JSON parsing for HuggingFace API

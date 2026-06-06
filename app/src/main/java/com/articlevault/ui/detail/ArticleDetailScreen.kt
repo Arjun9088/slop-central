@@ -208,9 +208,7 @@ fun ArticleDetailScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                tonalElevation = 2.dp,
-                shadowElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TopAppBar(
@@ -250,9 +248,9 @@ fun ArticleDetailScreen(
                             }
                             IconButton(onClick = { zapMode = !zapMode }) {
                                 Icon(
-                                    if (zapMode) Icons.Default.Delete else Icons.Default.Delete,
+                                    Icons.Default.Delete,
                                     contentDescription = "Zap element",
-                                    tint = if (zapMode) MaterialTheme.colorScheme.error else LocalContentColor.current
+                                    tint = if (zapMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             IconButton(onClick = { viewModel.toggleSearch() }) {
@@ -275,7 +273,13 @@ fun ArticleDetailScreen(
                                 Icon(Icons.Default.Close, contentDescription = "Close search")
                             }
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             }
         }

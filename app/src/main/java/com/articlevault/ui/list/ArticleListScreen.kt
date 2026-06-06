@@ -1,7 +1,5 @@
 package com.articlevault.ui.list
 
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -19,11 +17,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +36,7 @@ import com.articlevault.ml.DomainClassifier
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +44,8 @@ fun ArticleListScreen(
     onArticleClick: (String) -> Unit,
     onNavigateToModels: () -> Unit,
     onNavigateToFolders: () -> Unit,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToStats: () -> Unit,
     viewModel: ArticleListViewModel = hiltViewModel()
 ) {
     val articles by viewModel.articles.collectAsStateWithLifecycle()
@@ -55,6 +58,8 @@ fun ArticleListScreen(
     val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsStateWithLifecycle()
     val duplicateWarning by viewModel.duplicateWarning.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var articleToDelete by remember { mutableStateOf<Article?>(null) }
@@ -159,7 +164,7 @@ fun ArticleListScreen(
         )
     }
 
-    // Long-press context menu
+    // Context menu
     if (showContextMenu && contextMenuArticle != null) {
         val article = contextMenuArticle!!
         AlertDialog(
@@ -262,7 +267,7 @@ fun ArticleListScreen(
                             Text(summaryError!!, color = MaterialTheme.colorScheme.error)
                             if (summaryError!!.contains("No AI model")) {
                                 TextButton(onClick = { summaryArticle = null; onNavigateToModels() }) {
-                                    Text("Go to Models")
+                                    Text("Go to Settings")
                                 }
                             }
                         }
@@ -301,124 +306,252 @@ fun ArticleListScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            AnimatedVisibility(
-                visible = isMultiSelectMode,
-                enter = slideInVertically(),
-                exit = slideOutVertically()
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                TopAppBar(
-                    title = { Text("${selectedIds.size} selected") },
-                    navigationIcon = {
-                        IconButton(onClick = { viewModel.exitMultiSelect() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Cancel")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.selectAll() }) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = "Select all")
-                        }
-                        IconButton(onClick = { batchDeleteConfirm = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete selected")
-                        }
-                        IconButton(onClick = {
-                            viewModel.batchMarkRead()
-                            Toast.makeText(context, "Marked as read", Toast.LENGTH_SHORT).show()
-                        }) {
-                            Icon(Icons.Default.Done, contentDescription = "Mark read")
-                        }
-                        IconButton(onClick = { showMoveToFolder = true }) {
-                            Icon(Icons.Default.Star, contentDescription = "Move to folder")
-                        }
-                    }
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    "ArticleVault",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(16.dp)
                 )
-            }
-        },
-        floatingActionButton = {
-            if (!isMultiSelectMode) {
-                FloatingActionButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add link")
-                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                NavigationDrawerItem(
+                    label = { Text("Articles") },
+                    selected = true,
+                    onClick = { scope.launch { drawerState.close() } },
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.surface,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                NavigationDrawerItem(
+                    label = { Text("Search") },
+                    selected = false,
+                    onClick = { scope.launch { drawerState.close() }; onNavigateToSearch() },
+                    icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.surface,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                NavigationDrawerItem(
+                    label = { Text("Folders") },
+                    selected = false,
+                    onClick = { scope.launch { drawerState.close() }; onNavigateToFolders() },
+                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.surface,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                NavigationDrawerItem(
+                    label = { Text("Stats") },
+                    selected = false,
+                    onClick = { scope.launch { drawerState.close() }; onNavigateToStats() },
+                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.surface,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                NavigationDrawerItem(
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = { scope.launch { drawerState.close() }; onNavigateToModels() },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.surface,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            // Filter chips row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = filter == ListFilter.ALL && selectedFolderId == null && selectedTag == null,
-                    onClick = { viewModel.setFilter(ListFilter.ALL) },
-                    label = { Text("All") }
-                )
-                FilterChip(
-                    selected = filter == ListFilter.UNREAD,
-                    onClick = { viewModel.setFilter(ListFilter.UNREAD) },
-                    label = { Text("Unread") }
-                )
-                FilterChip(
-                    selected = filter == ListFilter.READ,
-                    onClick = { viewModel.setFilter(ListFilter.READ) },
-                    label = { Text("Read") }
-                )
-                // Tag filters
-                tags.take(6).forEach { tag ->
-                    FilterChip(
-                        selected = selectedTag == tag.name,
-                        onClick = { viewModel.selectTag(if (selectedTag == tag.name) null else tag.name) },
-                        label = { Text(tag.name) }
-                    )
-                }
-                // Folder filters
-                folders.forEach { folder ->
-                    FilterChip(
-                        selected = selectedFolderId == folder.id,
-                        onClick = { viewModel.selectFolder(folder.id) },
-                        label = { Text(folder.name) }
-                    )
-                }
-                AssistChip(
-                    onClick = onNavigateToFolders,
-                    label = { Text("Folders") },
-                    leadingIcon = { Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                )
-            }
-
-            // Article list
-            if (articles.isEmpty()) {
-                EmptyState()
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                AnimatedVisibility(
+                    visible = isMultiSelectMode,
+                    enter = slideInVertically(),
+                    exit = slideOutVertically()
                 ) {
-                    items(articles, key = { it.id }) { article ->
-                        ArticleCard(
-                            article = article,
-                            isSelected = selectedIds.contains(article.id),
-                            isMultiSelectMode = isMultiSelectMode,
-                            onClick = {
-                                if (isMultiSelectMode) {
-                                    viewModel.toggleSelection(article.id)
-                                } else {
-                                    onArticleClick(article.id)
-                                }
-                            },
-                            onLongClick = {
-                                if (isMultiSelectMode) {
-                                    viewModel.toggleSelection(article.id)
-                                } else {
-                                    contextMenuArticle = article
-                                    showContextMenu = true
-                                }
+                    TopAppBar(
+                        title = { Text("${selectedIds.size} selected") },
+                        navigationIcon = {
+                            IconButton(onClick = { viewModel.exitMultiSelect() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancel")
                             }
+                        },
+                        actions = {
+                            IconButton(onClick = { viewModel.selectAll() }) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = "Select all")
+                            }
+                            IconButton(onClick = { batchDeleteConfirm = true }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete selected")
+                            }
+                            IconButton(onClick = {
+                                viewModel.batchMarkRead()
+                                Toast.makeText(context, "Marked as read", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(Icons.Default.Done, contentDescription = "Mark read")
+                            }
+                            IconButton(onClick = { showMoveToFolder = true }) {
+                                Icon(Icons.Default.Star, contentDescription = "Move to folder")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                            actionIconContentColor = MaterialTheme.colorScheme.onSurface
                         )
+                    )
+                }
+            },
+            floatingActionButton = {
+                if (!isMultiSelectMode) {
+                    FloatingActionButton(
+                        onClick = { showAddDialog = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add link")
+                    }
+                }
+            }
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding)) {
+                // Top bar with hamburger and title
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { scope.launch { drawerState.open() } }
+                    ) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "Articles",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Filter chips row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = filter == ListFilter.ALL && selectedFolderId == null && selectedTag == null,
+                        onClick = { viewModel.setFilter(ListFilter.ALL) },
+                        label = { Text("All") }
+                    )
+                    FilterChip(
+                        selected = filter == ListFilter.UNREAD,
+                        onClick = { viewModel.setFilter(ListFilter.UNREAD) },
+                        label = { Text("Unread") }
+                    )
+                    FilterChip(
+                        selected = filter == ListFilter.READ,
+                        onClick = { viewModel.setFilter(ListFilter.READ) },
+                        label = { Text("Read") }
+                    )
+                    // Tag filters
+                    tags.take(6).forEach { tag ->
+                        FilterChip(
+                            selected = selectedTag == tag.name,
+                            onClick = { viewModel.selectTag(if (selectedTag == tag.name) null else tag.name) },
+                            label = { Text(tag.name) }
+                        )
+                    }
+                    // Folder filters
+                    folders.forEach { folder ->
+                        FilterChip(
+                            selected = selectedFolderId == folder.id,
+                            onClick = { viewModel.selectFolder(folder.id) },
+                            label = { Text(folder.name) }
+                        )
+                    }
+                }
+
+                // Article list
+                if (articles.isEmpty()) {
+                    EmptyState()
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        items(articles, key = { it.id }) { article ->
+                            ArticleCard(
+                                article = article,
+                                isSelected = selectedIds.contains(article.id),
+                                isMultiSelectMode = isMultiSelectMode,
+                                onClick = {
+                                    if (isMultiSelectMode) {
+                                        viewModel.toggleSelection(article.id)
+                                    } else {
+                                        onArticleClick(article.id)
+                                    }
+                                },
+                                onLongClick = {
+                                    if (isMultiSelectMode) {
+                                        viewModel.toggleSelection(article.id)
+                                    } else {
+                                        contextMenuArticle = article
+                                        showContextMenu = true
+                                    }
+                                }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                thickness = 0.5.dp
+                            )
+                        }
                     }
                 }
             }
@@ -480,117 +613,101 @@ private fun ArticleCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val context = LocalContext.current
-    val readingTime = DomainClassifier.extractReadingTimeMinutes(article.wordCount)
-    val siteType = if (article.domain.isNotBlank()) DomainClassifier.classify(article.url).label else null
+    val readingTime = remember(article.wordCount) { DomainClassifier.extractReadingTimeMinutes(article.wordCount) }
+    val timestamp = remember(article.savedAt) { formatTimestamp(article.savedAt).uppercase() }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = if (isSelected) CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        ) else CardDefaults.cardColors()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isMultiSelectMode) {
-                    Checkbox(
-                        checked = isSelected,
-                        onCheckedChange = { onClick() },
-                        modifier = Modifier.padding(end = 8.dp)
+        // Left: accent bar or checkbox
+        if (isMultiSelectMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onClick() },
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .size(20.dp)
+            )
+        } else if (!article.read) {
+            Surface(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(40.dp),
+                shape = RoundedCornerShape(2.dp),
+                color = MaterialTheme.colorScheme.primary
+            ) {}
+        } else {
+            Spacer(modifier = Modifier.width(3.dp))
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Middle: content
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = article.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = if (article.read) FontWeight.Normal else FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (article.domain.isNotBlank()) {
+                    Text(
+                        text = article.domain,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-                Text(
-                    text = article.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = if (article.read) FontWeight.Normal else FontWeight.Bold,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                if (!article.read) {
-                    Icon(Icons.Default.Favorite, contentDescription = "Unread",
-                        modifier = Modifier.size(16.dp).padding(start = 4.dp),
-                        tint = MaterialTheme.colorScheme.primary)
-                }
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = article.url,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).clickable {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url)))
-                    }
-                )
-                if (siteType != null) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                    ) {
-                        Text(
-                            text = siteType,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            if (article.summary.isNotBlank()) {
-                Text(text = article.summary, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-            } else if (article.excerpt.isNotBlank()) {
-                Text(text = article.excerpt, style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3, overflow = TextOverflow.Ellipsis)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = formatTimestamp(article.savedAt), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (article.wordCount > 0) {
                         Text(
-                            text = "$readingTime min read",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (article.readingProgress > 0.01f) {
-                        Text(
-                            text = "${(article.readingProgress * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            text = " · ",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }
+                if (article.wordCount > 0) {
+                    Text(
+                        text = "$readingTime MIN",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            // Reading progress bar
-            if (article.readingProgress > 0.01f) {
+            if (article.excerpt.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (article.summary.isNotBlank()) article.summary else article.excerpt,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (article.readingProgress > 0.01f) {
+                Spacer(modifier = Modifier.height(6.dp))
                 LinearProgressIndicator(
                     progress = { article.readingProgress },
                     modifier = Modifier.fillMaxWidth().height(2.dp).clip(RoundedCornerShape(1.dp)),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
             }
         }
+
+        // Right: timestamp
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = timestamp,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            maxLines = 1
+        )
     }
 }
 

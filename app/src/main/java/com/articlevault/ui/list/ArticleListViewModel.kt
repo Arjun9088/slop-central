@@ -174,8 +174,8 @@ class ArticleListViewModel @Inject constructor(
         }
     }
 
-    fun hasModel(): Boolean = summarizer.hasModel()
-    fun getSelectedModelName(): String? = summarizer.getSelectedModelName()
+    fun hasModel(): Boolean = summarizer.isApiConfigured()
+    fun getSelectedModelName(): String? = if (summarizer.isApiConfigured()) summarizer.getSelectedModelName() else null
 
     suspend fun summarize(articleId: String): Result<String> {
         return withContext(Dispatchers.Default) {

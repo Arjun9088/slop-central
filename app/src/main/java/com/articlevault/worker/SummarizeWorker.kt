@@ -25,10 +25,9 @@ class SummarizeWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val articleId = inputData.getString(ArticleWorkerKeys.ARTICLE_ID) ?: return Result.failure()
 
-        val mode = summarizer.getSummarizationMode()
-        val canSummarize = mode == "api" || summarizer.hasModel()
+        val canSummarize = summarizer.isApiConfigured()
         if (!canSummarize) {
-            Log.d(TAG, "No model or API configured, skipping auto-summarize")
+            Log.d(TAG, "No API configured, skipping auto-summarize")
             return Result.success()
         }
 
