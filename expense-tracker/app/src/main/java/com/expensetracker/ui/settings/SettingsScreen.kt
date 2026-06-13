@@ -1,6 +1,9 @@
 package com.expensetracker.ui.settings
 
 import android.app.Activity
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -42,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.services.sheets.v4.SheetsScopes
 
@@ -62,6 +67,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(uiState.importMessage) {
         uiState.importMessage?.let {
@@ -357,6 +363,51 @@ fun SettingsScreen(
                     uiState.sheetName != null
             ) {
                 Text("Push Unsynced Only")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "SMS Auto-Capture",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Automatically capture expenses from bank transaction SMS",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val context = LocalContext.current
+            val smsPermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                coroutineScope.launch {
+                    if (granted) {
+                        snackbarHostState.showSnackbar("SMS permission granted. Auto-capture enabled.")
+                    } else {
+                        snackbarHostState.showSnackbar("SMS permission denied. Auto-capture disabled.")
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        val hasPermission = context.checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+                        if (hasPermission) {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("SMS permission already granted")
+                            }
+                        } else {
+                            smsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Grant SMS Permission")
             }
 
             Spacer(modifier = Modifier.height(24.dp))

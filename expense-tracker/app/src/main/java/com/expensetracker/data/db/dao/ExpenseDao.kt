@@ -71,6 +71,9 @@ interface ExpenseDao {
 
     @Query("SELECT COUNT(*) FROM expenses")
     suspend fun count(): Int
+
+    @Query("SELECT COUNT(*) FROM expenses WHERE dedupHash = :hash LIMIT 1")
+    suspend fun countByDedupHash(hash: String): Int
 }
 
 data class CategoryTotal(val category: String, val total: Double)

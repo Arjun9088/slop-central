@@ -27,12 +27,19 @@ object AppModule {
             }
         }
 
+        val migration2to3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'")
+                db.execSQL("ALTER TABLE expenses ADD COLUMN dedupHash TEXT")
+            }
+        }
+
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "expense_tracker.db"
         )
-            .addMigrations(migration1to2)
+            .addMigrations(migration1to2, migration2to3)
             .build()
     }
 

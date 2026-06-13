@@ -15,7 +15,9 @@ data class Expense(
     val createdAt: Long = System.currentTimeMillis(),
     val modifiedAt: Long = System.currentTimeMillis(),
     val syncedToSheet: Boolean = false,
-    val sheetRowId: Long? = null
+    val sheetRowId: Long? = null,
+    val source: String = "manual",
+    val dedupHash: String? = null
 )
 
 val defaultCategories = listOf(
