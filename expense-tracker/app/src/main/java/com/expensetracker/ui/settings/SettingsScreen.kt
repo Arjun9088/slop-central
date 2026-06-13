@@ -338,6 +338,18 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedButton(
+                onClick = { viewModel.pullFromSheet() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = uiState.spreadsheetId != null &&
+                    uiState.sheetName != null &&
+                    !uiState.isImporting
+            ) {
+                Text("Pull from Sheet Only")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
                 onClick = { viewModel.triggerSync() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState.syncEnabled &&

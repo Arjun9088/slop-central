@@ -236,6 +236,38 @@ class SettingsViewModel @Inject constructor(
         forceSync()
     }
 
+    fun pullFromSheet() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isImporting = true, importMessage = null) }
+            val result = sheetsService.pullFromSheet(expenseDao)
+            when (result) {
+                is com.expensetracker.data.sync.SyncResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isImporting = false,
+                            importMessage = "Pull done: ${result.pulled} imported/updated"
+                        )
+                    }
+                }
+                is com.expensetracker.data.sync.SyncResult.Error -> {
+                    _uiState.update {
+                        it.copy(isImporting = false, importMessage = "Pull failed: ${result.exception.message}")
+                    }
+                }
+                is com.expensetracker.data.sync.SyncResult.NotConfigured -> {
+                    _uiState.update {
+                        it.copy(isImporting = false, importMessage = "Select a spreadsheet and tab first")
+                    }
+                }
+                is com.expensetracker.data.sync.SyncResult.ConsentRequired -> {
+                    _uiState.update {
+                        it.copy(isImporting = false, consentIntent = result.consentIntent)
+                    }
+                }
+            }
+        }
+    }
+
     fun clearImportMessage() {
         _uiState.update { it.copy(importMessage = null) }
     }

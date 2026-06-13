@@ -94,8 +94,17 @@ class GoogleSheetsService @Inject constructor(
                 SheetsResult.Success(result.files.map { SpreadsheetInfo(id = it.id, name = it.name) })
             } catch (e: UserRecoverableAuthIOException) {
                 SheetsResult.ConsentRequired(e.intent)
+            } catch (e: com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAuthIOException) {
+                val message = e.cause?.message ?: e.message ?: "Unknown auth error"
+                if (message.contains("UnregisteredOnApiConsole", ignoreCase = true)) {
+                    SheetsResult.Error(IllegalStateException("App not registered in Google Cloud Console. Add the app's SHA-1 fingerprint to your OAuth client."))
+                } else if (message.contains("NeedRemoteConsent", ignoreCase = true) || message.contains("UserRecoverable", ignoreCase = true)) {
+                    val intent = android.content.Intent()
+                    SheetsResult.Error(IllegalStateException("Authorization needed. Please reconnect your Google account."))
+                } else {
+                    SheetsResult.Error(e)
+                }
             } catch (e: Exception) {
-                Log.e("GoogleSheetsService", "List spreadsheets failed: ${e.message}", e)
                 SheetsResult.Error(e)
             }
         }
@@ -458,6 +467,89 @@ class GoogleSheetsService @Inject constructor(
                 SyncResult.ConsentRequired(e.intent)
             } catch (e: Exception) {
                 Log.e("GoogleSheetsService", "Full sync failed: ${e.message}", e)
+                SyncResult.Error(e)
+            }
+        }
+    }
+
+    suspend fun pullFromSheet(expenseDao: ExpenseDao): SyncResult {
+        if (!isConfigured()) return SyncResult.NotConfigured
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val sheetRows = fetchAllRows()
+                val sheetExpenses = parseRowsToSheetExpenses(sheetRows)
+                val localExpenses = expenseDao.getAllSyncedAndUnsynced()
+
+                var pulled = 0
+
+                val localBySheetRowId = localExpenses.filter { it.sheetRowId != null }
+                    .associateBy { it.sheetRowId!! }
+
+                for (sheetExp in sheetExpenses) {
+                    if (sheetExp.rowNumber in localBySheetRowId.keys) {
+                        // Already linked → update if sheet is newer
+                        val local = localBySheetRowId[sheetExp.rowNumber]!!
+                        if (sheetExp.modifiedAt > local.modifiedAt) {
+                            val categoryEnum = ExpenseCategory.entries.find {
+                                it.displayName.equals(sheetExp.category, ignoreCase = true)
+                            } ?: ExpenseCategory.OTHER
+                            val paymentEnum = PaymentMethod.entries.find {
+                                it.displayName.equals(sheetExp.paymentMethod, ignoreCase = true)
+                            } ?: PaymentMethod.CASH
+
+                            expenseDao.update(local.copy(
+                                date = sheetExp.date,
+                                description = sheetExp.description,
+                                category = categoryEnum.name,
+                                amount = sheetExp.amount,
+                                paymentMethod = paymentEnum.name,
+                                modifiedAt = sheetExp.modifiedAt,
+                                syncedToSheet = true,
+                                sheetRowId = sheetExp.rowNumber
+                            ))
+                            pulled++
+                        }
+                    } else {
+                        // Not linked → check natural key or insert new
+                        val localMatch = expenseDao.findByNaturalKey(
+                            sheetExp.date, sheetExp.description, sheetExp.amount
+                        )
+                        if (localMatch != null) {
+                            if (localMatch.sheetRowId == null) {
+                                expenseDao.update(localMatch.copy(
+                                    sheetRowId = sheetExp.rowNumber,
+                                    syncedToSheet = true
+                                ))
+                            }
+                        } else {
+                            val categoryEnum = ExpenseCategory.entries.find {
+                                it.displayName.equals(sheetExp.category, ignoreCase = true)
+                            } ?: ExpenseCategory.OTHER
+                            val paymentEnum = PaymentMethod.entries.find {
+                                it.displayName.equals(sheetExp.paymentMethod, ignoreCase = true)
+                            } ?: PaymentMethod.CASH
+
+                            expenseDao.insert(Expense(
+                                date = sheetExp.date,
+                                description = sheetExp.description,
+                                category = categoryEnum.name,
+                                amount = sheetExp.amount,
+                                paymentMethod = paymentEnum.name,
+                                modifiedAt = sheetExp.modifiedAt,
+                                syncedToSheet = true,
+                                sheetRowId = sheetExp.rowNumber
+                            ))
+                            pulled++
+                        }
+                    }
+                }
+
+                SyncResult.Success(pushed = 0, pulled = pulled, deleted = 0)
+            } catch (e: UserRecoverableAuthIOException) {
+                SyncResult.ConsentRequired(e.intent)
+            } catch (e: Exception) {
+                Log.e("GoogleSheetsService", "Pull failed: ${e.message}", e)
                 SyncResult.Error(e)
             }
         }
