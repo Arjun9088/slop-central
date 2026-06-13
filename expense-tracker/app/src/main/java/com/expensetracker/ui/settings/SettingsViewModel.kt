@@ -1,5 +1,6 @@
 package com.expensetracker.ui.settings
 
+import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,7 +11,9 @@ import com.expensetracker.data.sync.SheetsResult
 import com.expensetracker.data.sync.SpreadsheetInfo
 import com.expensetracker.data.sync.SyncPreferences
 import com.expensetracker.data.sync.SyncWorker
+import com.expensetracker.sms.NotificationExpenseListener
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +37,8 @@ data class SettingsUiState(
     val isLoadingTabs: Boolean = false,
     val showSheetPicker: Boolean = false,
     val showTabPicker: Boolean = false,
-    val consentIntent: Intent? = null
+    val consentIntent: Intent? = null,
+    val notificationAccessEnabled: Boolean = false
 )
 
 @HiltViewModel
@@ -42,7 +46,8 @@ class SettingsViewModel @Inject constructor(
     private val syncPreferences: SyncPreferences,
     private val workManager: WorkManager,
     private val sheetsService: GoogleSheetsService,
-    private val expenseDao: ExpenseDao
+    private val expenseDao: ExpenseDao,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -51,6 +56,7 @@ class SettingsViewModel @Inject constructor(
     init {
         loadSettings()
         restoreSheetsService()
+        refreshNotificationAccessStatus()
     }
 
     private fun loadSettings() {
@@ -265,6 +271,12 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun refreshNotificationAccessStatus() {
+        _uiState.update {
+            it.copy(notificationAccessEnabled = NotificationExpenseListener.isEnabled(context))
         }
     }
 

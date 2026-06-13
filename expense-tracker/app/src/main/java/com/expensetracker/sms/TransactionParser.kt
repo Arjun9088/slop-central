@@ -24,9 +24,10 @@ object TransactionParser {
     )
 
     private val merchantPatterns = listOf(
-        Regex("""(?i)(?:at|to|from|@)\s+([A-Za-z0-9][A-Za-z0-9\s&.'_/-]{1,40?)(?:\s+on|\s+via|\s+ref|\s+\d|\s*$)"""),
-        Regex("""(?i)(?:merchant|shop|store|vendor)[:\s]+([A-Za-z0-9][A-Za-z0-9\s&.'_/-]{1,40})"""),
-        Regex("""(?i)(?:spent|paid|transferred)\s+(?:rs\.?|inr|₹)?\s*[\d,]+(?:\.\d{1,2})?\s+(?:at|to|from|@)\s+([A-Za-z0-9][A-Za-z0-9\s&.'_/-]{1,40})"""),
+        Regex("""(?i)(?:spent|paid|transferred)\s+(?:rs\.?|inr|₹)?\s*[\d,]+(?:\.\d{1,2})?\s+(?:at|to|from|@)\s+([A-Za-z0-9][A-Za-z0-9\s&'_/-]{1,40}?)(?:\s*[.,]|\s+on|\s+via|\s+ref|\s+\d|\s+available|\s+balance|\s*$)"""),
+        Regex("""(?i)(?:spent|paid|transferred)\s+(?:at|to|from|@)\s+([A-Za-z0-9][A-Za-z0-9\s&'_/-]{1,40}?)(?:\s*[.,]|\s+on|\s+via|\s+ref|\s+\d|\s+available|\s+balance|\s*$)"""),
+        Regex("""(?i)(?:at|to|from|@)\s+([A-Za-z0-9][A-Za-z0-9\s&'_/-]{1,40}?)(?:\s+on|\s+via|\s+ref|\s+\d|\s*$)"""),
+        Regex("""(?i)(?:merchant|shop|store|vendor)[:\s]+([A-Za-z0-9][A-Za-z0-9\s&'_/-]{1,40})"""),
     )
 
     private val cardPatterns = listOf(
