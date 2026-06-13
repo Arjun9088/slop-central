@@ -18,19 +18,19 @@ data class Expense(
     val sheetRowId: Long? = null
 )
 
-enum class ExpenseCategory(val displayName: String) {
-    FOOD_DRINK("Food and drink"),
-    SHOPPING("Shopping"),
-    TRANSPORTATION("Transportation"),
-    ENTERTAINMENT("Entertainment"),
-    BILLS_UTILITIES("Bills and utilities"),
-    OTHER("Other")
-}
+val defaultCategories = listOf(
+    "Food and drink",
+    "Shopping",
+    "Transportation",
+    "Entertainment",
+    "Bills and utilities",
+    "Other"
+)
 
-enum class PaymentMethod(val displayName: String) {
-    CASH("Cash"),
-    CREDIT_CARD("Credit Card"),
-    DEBIT_CARD("Debit Card"),
-    DIGITAL_WALLET("Digital Wallet"),
-    GPAY("GPay")
-}
+val defaultPaymentMethods = listOf(
+    "Cash",
+    "Credit Card",
+    "Debit Card",
+    "Digital Wallet",
+    "gpay"
+)

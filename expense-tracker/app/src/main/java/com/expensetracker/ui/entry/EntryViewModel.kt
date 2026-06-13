@@ -6,8 +6,8 @@ import androidx.work.WorkManager
 import com.expensetracker.data.sync.SyncPreferences
 import com.expensetracker.data.db.dao.ExpenseDao
 import com.expensetracker.data.db.entity.Expense
-import com.expensetracker.data.db.entity.ExpenseCategory
-import com.expensetracker.data.db.entity.PaymentMethod
+import com.expensetracker.data.db.entity.defaultCategories
+import com.expensetracker.data.db.entity.defaultPaymentMethods
 import com.expensetracker.data.sync.SyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,9 +22,9 @@ import javax.inject.Inject
 data class EntryUiState(
     val date: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
     val description: String = "",
-    val category: ExpenseCategory = ExpenseCategory.FOOD_DRINK,
+    val category: String = defaultCategories.first(),
     val amount: String = "",
-    val paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    val paymentMethod: String = defaultPaymentMethods.first(),
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
@@ -50,9 +50,9 @@ class EntryViewModel @Inject constructor(
             _uiState.value = EntryUiState(
                 date = expense.date,
                 description = expense.description,
-                category = ExpenseCategory.valueOf(expense.category),
+                category = expense.category,
                 amount = expense.amount.toString(),
-                paymentMethod = PaymentMethod.valueOf(expense.paymentMethod),
+                paymentMethod = expense.paymentMethod,
                 isEditing = true
             )
         }
@@ -66,7 +66,7 @@ class EntryViewModel @Inject constructor(
         _uiState.update { it.copy(description = desc) }
     }
 
-    fun updateCategory(cat: ExpenseCategory) {
+    fun updateCategory(cat: String) {
         _uiState.update { it.copy(category = cat) }
     }
 
@@ -76,7 +76,7 @@ class EntryViewModel @Inject constructor(
         }
     }
 
-    fun updatePaymentMethod(method: PaymentMethod) {
+    fun updatePaymentMethod(method: String) {
         _uiState.update { it.copy(paymentMethod = method) }
     }
 
@@ -101,9 +101,9 @@ class EntryViewModel @Inject constructor(
                     id = editingExpenseId ?: 0,
                     date = state.date,
                     description = state.description.trim(),
-                    category = state.category.name,
+                    category = state.category,
                     amount = amountValue,
-                    paymentMethod = state.paymentMethod.name,
+                    paymentMethod = state.paymentMethod,
                     modifiedAt = now,
                     syncedToSheet = false
                 )

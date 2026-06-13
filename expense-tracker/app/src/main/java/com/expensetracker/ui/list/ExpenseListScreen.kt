@@ -43,8 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expensetracker.data.db.entity.Expense
-import com.expensetracker.data.db.entity.ExpenseCategory
-import com.expensetracker.data.db.entity.PaymentMethod
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -209,11 +207,7 @@ private fun ExpenseRow(
                 Spacer(modifier = Modifier.height(2.dp))
                 Row {
                     Text(
-                        text = try {
-                            ExpenseCategory.valueOf(expense.category).displayName
-                        } catch (e: Exception) {
-                            expense.category
-                        },
+                        text = expense.category,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -223,11 +217,7 @@ private fun ExpenseRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = try {
-                            PaymentMethod.valueOf(expense.paymentMethod).displayName
-                        } catch (e: Exception) {
-                            expense.paymentMethod
-                        },
+                        text = expense.paymentMethod,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

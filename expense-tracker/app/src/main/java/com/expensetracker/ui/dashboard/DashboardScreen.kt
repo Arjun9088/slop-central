@@ -36,8 +36,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expensetracker.data.db.dao.CategoryTotal
 import com.expensetracker.data.db.dao.PaymentMethodTotal
-import com.expensetracker.data.db.entity.ExpenseCategory
-import com.expensetracker.data.db.entity.PaymentMethod
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -190,11 +188,6 @@ private fun CategoryRow(
     maxValue: Double,
     currencyFormat: NumberFormat
 ) {
-    val displayName = try {
-        ExpenseCategory.valueOf(item.category).displayName
-    } catch (e: Exception) {
-        item.category
-    }
     val fraction = if (maxValue > 0) (item.total / maxValue).toFloat() else 0f
 
     Card(
@@ -209,7 +202,7 @@ private fun CategoryRow(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = displayName,
+                    text = item.category,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -239,11 +232,6 @@ private fun PaymentRow(
     maxValue: Double,
     currencyFormat: NumberFormat
 ) {
-    val displayName = try {
-        PaymentMethod.valueOf(item.paymentMethod).displayName
-    } catch (e: Exception) {
-        item.paymentMethod
-    }
     val fraction = if (maxValue > 0) (item.total / maxValue).toFloat() else 0f
 
     Card(
@@ -258,7 +246,7 @@ private fun PaymentRow(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = displayName,
+                    text = item.paymentMethod,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )

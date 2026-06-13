@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -42,12 +43,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.expensetracker.data.db.entity.ExpenseCategory
-import com.expensetracker.data.db.entity.PaymentMethod
+import com.expensetracker.data.db.entity.defaultCategories
+import com.expensetracker.data.db.entity.defaultPaymentMethods
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -62,7 +64,8 @@ fun EntryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val focusRequester = remember { FocusRequester() }
+    val descriptionFocusRequester = remember { FocusRequester() }
+    val amountFocusRequester = remember { FocusRequester() }
     var showDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(expenseId) {
@@ -127,8 +130,12 @@ fun EntryScreen(
                 value = uiState.description,
                 onValueChange = { viewModel.updateDescription(it) },
                 label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(descriptionFocusRequester),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { amountFocusRequester.requestFocus() })
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -143,11 +150,11 @@ fun EntryScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                ExpenseCategory.entries.forEach { category ->
+                defaultCategories.forEach { category ->
                     FilterChip(
                         selected = uiState.category == category,
                         onClick = { viewModel.updateCategory(category) },
-                        label = { Text(category.displayName) }
+                        label = { Text(category) }
                     )
                 }
             }
@@ -160,8 +167,9 @@ fun EntryScreen(
                 label = { Text("Amount") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    .focusRequester(amountFocusRequester),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { this.defaultKeyboardAction(ImeAction.Done) }),
                 singleLine = true,
                 prefix = { Text("₹") }
             )
@@ -178,11 +186,11 @@ fun EntryScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                PaymentMethod.entries.forEach { method ->
+                defaultPaymentMethods.forEach { method ->
                     FilterChip(
                         selected = uiState.paymentMethod == method,
                         onClick = { viewModel.updatePaymentMethod(method) },
-                        label = { Text(method.displayName) }
+                        label = { Text(method) }
                     )
                 }
             }
@@ -244,7 +252,7 @@ fun EntryScreen(
 
     LaunchedEffect(Unit) {
         if (expenseId == 0L) {
-            focusRequester.requestFocus()
+            descriptionFocusRequester.requestFocus()
         }
     }
 }

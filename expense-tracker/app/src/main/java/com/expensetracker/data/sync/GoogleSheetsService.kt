@@ -5,8 +5,6 @@ import android.content.Intent
 import android.util.Log
 import com.expensetracker.data.db.dao.ExpenseDao
 import com.expensetracker.data.db.entity.Expense
-import com.expensetracker.data.db.entity.ExpenseCategory
-import com.expensetracker.data.db.entity.PaymentMethod
 import com.google.api.client.extensions.android.http.AndroidHttp
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException
@@ -142,9 +140,9 @@ class GoogleSheetsService @Inject constructor(
                     listOf(
                         expense.date,
                         expense.description,
-                        ExpenseCategory.valueOf(expense.category).displayName,
+                        expense.category,
                         expense.amount.toString(),
-                        PaymentMethod.valueOf(expense.paymentMethod).displayName,
+                        expense.paymentMethod,
                         expense.modifiedAt.toString()
                     )
                 )
@@ -179,9 +177,9 @@ class GoogleSheetsService @Inject constructor(
                     listOf(
                         expense.date,
                         expense.description,
-                        ExpenseCategory.valueOf(expense.category).displayName,
+                        expense.category,
                         expense.amount.toString(),
-                        PaymentMethod.valueOf(expense.paymentMethod).displayName,
+                        expense.paymentMethod,
                         expense.modifiedAt.toString()
                     )
                 )
@@ -342,24 +340,17 @@ class GoogleSheetsService @Inject constructor(
     fun parseRowsToExpenses(rows: List<List<Any>>): List<Expense> {
         if (rows.isEmpty()) return emptyList()
 
-        val categoryMap = ExpenseCategory.entries.associateBy { it.displayName.lowercase() }
-        val paymentMap = PaymentMethod.entries.associateBy { it.displayName.lowercase() }
-
         return rows.drop(1).mapNotNull { row ->
             try {
                 if (row.size < 5) return@mapNotNull null
 
                 val date = row[0].toString().trim()
                 val description = row[1].toString().trim()
-                val categoryRaw = row[2].toString().trim().lowercase()
-                val amountStr = row[3].toString().trim().replace(",", "")
-                val paymentRaw = row[4].toString().trim().lowercase()
+                val category = row[2].toString().trim()
+                val amountStr = row[3].toString().trim().replace(",", "").replace("₹", "").replace("$", "").replace("€", "").replace("£", "")
+                val paymentMethod = row[4].toString().trim()
 
                 val amount = amountStr.toDoubleOrNull() ?: return@mapNotNull null
-                val category = categoryMap[categoryRaw]?.name
-                    ?: ExpenseCategory.OTHER.name
-                val paymentMethod = paymentMap[paymentRaw]?.name
-                    ?: PaymentMethod.CASH.name
 
                 Expense(
                     date = date,
@@ -370,7 +361,6 @@ class GoogleSheetsService @Inject constructor(
                     syncedToSheet = true
                 )
             } catch (e: Exception) {
-                Log.w("GoogleSheetsService", "Skipping row: ${e.message}")
                 null
             }
         }
@@ -412,19 +402,12 @@ class GoogleSheetsService @Inject constructor(
                             expenseDao.markSynced(local.id, local.sheetRowId)
                             pushed++
                         } else if (sheetExp.modifiedAt > local.modifiedAt) {
-                            val categoryEnum = ExpenseCategory.entries.find {
-                                it.displayName.equals(sheetExp.category, ignoreCase = true)
-                            } ?: ExpenseCategory.OTHER
-                            val paymentEnum = PaymentMethod.entries.find {
-                                it.displayName.equals(sheetExp.paymentMethod, ignoreCase = true)
-                            } ?: PaymentMethod.CASH
-
                             expenseDao.update(local.copy(
                                 date = sheetExp.date,
                                 description = sheetExp.description,
-                                category = categoryEnum.name,
+                                category = sheetExp.category,
                                 amount = sheetExp.amount,
-                                paymentMethod = paymentEnum.name,
+                                paymentMethod = sheetExp.paymentMethod,
                                 modifiedAt = sheetExp.modifiedAt,
                                 syncedToSheet = true,
                                 sheetRowId = sheetExp.rowNumber
@@ -491,19 +474,12 @@ class GoogleSheetsService @Inject constructor(
                         // Already linked → update if sheet is newer
                         val local = localBySheetRowId[sheetExp.rowNumber]!!
                         if (sheetExp.modifiedAt > local.modifiedAt) {
-                            val categoryEnum = ExpenseCategory.entries.find {
-                                it.displayName.equals(sheetExp.category, ignoreCase = true)
-                            } ?: ExpenseCategory.OTHER
-                            val paymentEnum = PaymentMethod.entries.find {
-                                it.displayName.equals(sheetExp.paymentMethod, ignoreCase = true)
-                            } ?: PaymentMethod.CASH
-
                             expenseDao.update(local.copy(
                                 date = sheetExp.date,
                                 description = sheetExp.description,
-                                category = categoryEnum.name,
+                                category = sheetExp.category,
                                 amount = sheetExp.amount,
-                                paymentMethod = paymentEnum.name,
+                                paymentMethod = sheetExp.paymentMethod,
                                 modifiedAt = sheetExp.modifiedAt,
                                 syncedToSheet = true,
                                 sheetRowId = sheetExp.rowNumber
@@ -523,19 +499,12 @@ class GoogleSheetsService @Inject constructor(
                                 ))
                             }
                         } else {
-                            val categoryEnum = ExpenseCategory.entries.find {
-                                it.displayName.equals(sheetExp.category, ignoreCase = true)
-                            } ?: ExpenseCategory.OTHER
-                            val paymentEnum = PaymentMethod.entries.find {
-                                it.displayName.equals(sheetExp.paymentMethod, ignoreCase = true)
-                            } ?: PaymentMethod.CASH
-
                             expenseDao.insert(Expense(
                                 date = sheetExp.date,
                                 description = sheetExp.description,
-                                category = categoryEnum.name,
+                                category = sheetExp.category,
                                 amount = sheetExp.amount,
-                                paymentMethod = paymentEnum.name,
+                                paymentMethod = sheetExp.paymentMethod,
                                 modifiedAt = sheetExp.modifiedAt,
                                 syncedToSheet = true,
                                 sheetRowId = sheetExp.rowNumber
