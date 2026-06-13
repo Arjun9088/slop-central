@@ -149,7 +149,7 @@ class GoogleSheetsService @Inject constructor(
 
                 val body = ValueRange().setValues(values)
                 val response = service.spreadsheets().values()
-                    .append(spreadsheetId, getSheetRange("A:F"), body)
+                    .append(spreadsheetId, getSheetRange("B:G"), body)
                     .setValueInputOption("USER_ENTERED")
                     .setInsertDataOption("INSERT_ROWS")
                     .execute()
@@ -172,7 +172,7 @@ class GoogleSheetsService @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             try {
-                val range = getSheetRange("A$rowId:F$rowId")
+                val range = getSheetRange("B$rowId:G$rowId")
                 val values = listOf(
                     listOf(
                         expense.date,

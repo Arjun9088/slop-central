@@ -27,6 +27,15 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses ORDER BY date DESC, createdAt DESC")
     fun observeAll(): Flow<List<Expense>>
 
+    @Query("SELECT * FROM expenses WHERE description LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%' OR paymentMethod LIKE '%' || :query || '%' ORDER BY date DESC, createdAt DESC")
+    fun search(query: String): Flow<List<Expense>>
+
+    @Query("SELECT * FROM expenses WHERE category = :category ORDER BY date DESC, createdAt DESC")
+    fun observeByCategory(category: String): Flow<List<Expense>>
+
+    @Query("SELECT DISTINCT category FROM expenses ORDER BY category")
+    suspend fun getAllCategories(): List<String>
+
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun getById(id: Long): Expense?
 
@@ -35,9 +44,6 @@ interface ExpenseDao {
 
     @Query("SELECT * FROM expenses WHERE date >= :startDate AND date <= :endDate ORDER BY date DESC, createdAt DESC")
     fun observeByDateRange(startDate: String, endDate: String): Flow<List<Expense>>
-
-    @Query("SELECT * FROM expenses WHERE category = :category ORDER BY date DESC")
-    fun observeByCategory(category: String): Flow<List<Expense>>
 
     @Query("SELECT * FROM expenses WHERE syncedToSheet = 0")
     suspend fun getUnsynced(): List<Expense>
@@ -69,6 +75,9 @@ interface ExpenseDao {
     @Query("SELECT paymentMethod, SUM(amount) as total FROM expenses WHERE date >= :startDate AND date <= :endDate GROUP BY paymentMethod ORDER BY total DESC")
     suspend fun getTotalByPaymentMethodInRange(startDate: String, endDate: String): List<PaymentMethodTotal>
 
+    @Query("SELECT substr(date, 1, 7) as month, SUM(amount) as total FROM expenses GROUP BY substr(date, 1, 7) ORDER BY month DESC LIMIT :limit")
+    suspend fun getMonthlyTotals(limit: Int = 12): List<MonthlyTotal>
+
     @Query("SELECT COUNT(*) FROM expenses")
     suspend fun count(): Int
 
@@ -78,3 +87,4 @@ interface ExpenseDao {
 
 data class CategoryTotal(val category: String, val total: Double)
 data class PaymentMethodTotal(val paymentMethod: String, val total: Double)
+data class MonthlyTotal(val month: String, val total: Double)

@@ -113,4 +113,7 @@ dependencies {
 
     // OkHttp (for Google API transport)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // ML Kit Text Recognition (for receipt OCR)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 }

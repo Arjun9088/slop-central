@@ -1,5 +1,6 @@
 package com.expensetracker.ui.dashboard
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,11 +32,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expensetracker.data.db.dao.CategoryTotal
+import com.expensetracker.data.db.dao.MonthlyTotal
 import com.expensetracker.data.db.dao.PaymentMethodTotal
 import java.text.NumberFormat
 import java.util.Locale
@@ -118,6 +128,24 @@ fun DashboardScreen(
                     }
                 }
 
+                if (state.monthlyTrend.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Monthly Trend",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+
+                    item {
+                        TrendChart(
+                            data = state.monthlyTrend,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        )
+                    }
+                }
+
                 if (state.categoryBreakdown.isNotEmpty()) {
                     item {
                         Text(
@@ -148,6 +176,77 @@ fun DashboardScreen(
                 }
 
                 item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendChart(
+    data: List<MonthlyTotal>,
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            val maxAmount = data.maxOf { it.total }
+            val minAmount = data.minOf { it.total }
+            val range = (maxAmount - minAmount).coerceAtLeast(1.0)
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+            ) {
+                val width = size.width
+                val height = size.height
+                val stepX = width / (data.size - 1).coerceAtLeast(1)
+
+                val points = data.mapIndexed { index, item ->
+                    val x = index * stepX
+                    val y = height - ((item.total - minAmount) / range * height).toFloat()
+                    Offset(x, y)
+                }
+
+                if (points.size >= 2) {
+                    val path = Path().apply {
+                        moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            val prev = points[i - 1]
+                            val curr = points[i]
+                            val midX = (prev.x + curr.x) / 2
+                            cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                        }
+                    }
+                    drawPath(path, primaryColor, style = Stroke(width = 3f, cap = StrokeCap.Round))
+                }
+
+                for (point in points) {
+                    drawCircle(primaryColor, radius = 4f, center = point)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                data.forEach { item ->
+                    Text(
+                        text = item.month.takeLast(2),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }

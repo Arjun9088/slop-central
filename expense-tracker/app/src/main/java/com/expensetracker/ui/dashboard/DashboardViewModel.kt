@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.expensetracker.data.db.dao.ExpenseDao
 import com.expensetracker.data.db.dao.CategoryTotal
+import com.expensetracker.data.db.dao.MonthlyTotal
 import com.expensetracker.data.db.dao.PaymentMethodTotal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ data class DashboardState(
     val todayTotal: Double = 0.0,
     val categoryBreakdown: List<CategoryTotal> = emptyList(),
     val paymentBreakdown: List<PaymentMethodTotal> = emptyList(),
+    val monthlyTrend: List<MonthlyTotal> = emptyList(),
     val totalCount: Int = 0,
     val isLoading: Boolean = false
 )
@@ -49,6 +51,7 @@ class DashboardViewModel @Inject constructor(
                 val monthlyTotal = expenseDao.getTotalInRange(monthStart, monthEnd) ?: 0.0
                 val categoryBreakdown = expenseDao.getTotalByCategoryInRange(monthStart, monthEnd)
                 val paymentBreakdown = expenseDao.getTotalByPaymentMethodInRange(monthStart, monthEnd)
+                val monthlyTrend = expenseDao.getMonthlyTotals(12)
                 val count = expenseDao.count()
 
                 _state.update {
@@ -57,6 +60,7 @@ class DashboardViewModel @Inject constructor(
                         monthlyTotal = monthlyTotal,
                         categoryBreakdown = categoryBreakdown,
                         paymentBreakdown = paymentBreakdown,
+                        monthlyTrend = monthlyTrend.reversed(),
                         totalCount = count,
                         isLoading = false
                     )

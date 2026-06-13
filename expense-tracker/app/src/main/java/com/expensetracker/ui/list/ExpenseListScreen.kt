@@ -1,6 +1,7 @@
 package com.expensetracker.ui.list
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,19 +14,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,12 +60,23 @@ fun ExpenseListScreen(
     onEditExpense: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToReceipt: () -> Unit,
     viewModel: ExpenseListViewModel = hiltViewModel()
 ) {
     val expenses by viewModel.expenses.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
     var expenseToDelete by remember { mutableStateOf<Expense?>(null) }
+    var showSearch by remember { mutableStateOf(false) }
 
-    val grouped = expenses.groupBy { it.date }
+    val filtered = if (selectedCategory != null) {
+        expenses.filter { it.category == selectedCategory }
+    } else {
+        expenses
+    }
+
+    val grouped = filtered.groupBy { it.date }
     val sortedDates = grouped.keys.sortedByDescending { it }
 
     Scaffold(
@@ -66,6 +84,15 @@ fun ExpenseListScreen(
             TopAppBar(
                 title = { Text("Expenses") },
                 actions = {
+                    IconButton(onClick = { showSearch = !showSearch }) {
+                        Icon(
+                            if (showSearch) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = "Search"
+                        )
+                    }
+                    IconButton(onClick = onNavigateToReceipt) {
+                        Icon(Icons.Default.Edit, contentDescription = "Scan Receipt")
+                    }
                     IconButton(onClick = onNavigateToDashboard) {
                         Icon(Icons.Default.Star, contentDescription = "Dashboard")
                     }
@@ -81,70 +108,117 @@ fun ExpenseListScreen(
             }
         }
     ) { paddingValues ->
-        if (expenses.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "No expenses yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (showSearch) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.updateSearch(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    placeholder = { Text("Search expenses...") },
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.updateSearch("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                            }
+                        }
+                    }
+                )
+            }
+
+            if (categories.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedCategory == null,
+                        onClick = { viewModel.selectCategory(null) },
+                        label = { Text("All") }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tap + to add your first expense",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    categories.forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { viewModel.selectCategory(category) },
+                            label = { Text(category) }
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                for (date in sortedDates) {
-                    val dayExpenses = grouped[date] ?: emptyList()
-                    val dayTotal = dayExpenses.sumOf { it.amount }
-                    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
 
-                    item(key = "header-$date") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+            if (filtered.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "No matching expenses" else "No expenses yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (searchQuery.isBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = date,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = currencyFormat.format(dayTotal),
-                                style = MaterialTheme.typography.titleSmall,
+                                text = "Tap + to add your first expense",
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    for (date in sortedDates) {
+                        val dayExpenses = grouped[date] ?: emptyList()
+                        val dayTotal = dayExpenses.sumOf { it.amount }
+                        val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
 
-                    items(
-                        items = dayExpenses,
-                        key = { it.id }
-                    ) { expense ->
-                        ExpenseRow(
-                            expense = expense,
-                            onClick = { onEditExpense(expense.id) },
-                            onDelete = { expenseToDelete = expense }
-                        )
+                        item(key = "header-$date") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = date,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = currencyFormat.format(dayTotal),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        items(
+                            items = dayExpenses,
+                            key = { it.id }
+                        ) { expense ->
+                            ExpenseRow(
+                                expense = expense,
+                                onClick = { onEditExpense(expense.id) },
+                                onDelete = { expenseToDelete = expense }
+                            )
+                        }
                     }
                 }
             }
@@ -221,6 +295,13 @@ private fun ExpenseRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (expense.source == "sms") {
+                        Text(
+                            text = " • SMS",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 

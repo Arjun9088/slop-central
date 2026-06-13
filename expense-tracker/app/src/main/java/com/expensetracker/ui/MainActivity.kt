@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import com.expensetracker.ui.dashboard.DashboardScreen
 import com.expensetracker.ui.entry.EntryScreen
 import com.expensetracker.ui.list.ExpenseListScreen
+import com.expensetracker.ui.receipt.ReceiptScreen
 import com.expensetracker.ui.settings.SettingsScreen
 import com.expensetracker.ui.theme.ExpenseTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -41,7 +42,8 @@ class MainActivity : ComponentActivity() {
                             onAddExpense = { navController.navigate("entry") },
                             onEditExpense = { id -> navController.navigate("entry/$id") },
                             onNavigateToSettings = { navController.navigate("settings") },
-                            onNavigateToDashboard = { navController.navigate("dashboard") }
+                            onNavigateToDashboard = { navController.navigate("dashboard") },
+                            onNavigateToReceipt = { navController.navigate("receipt") }
                         )
                     }
                     composable("entry") {
@@ -67,6 +69,11 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("dashboard") {
                         DashboardScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("receipt") {
+                        ReceiptScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }
