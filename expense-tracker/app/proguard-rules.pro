@@ -16,3 +16,7 @@
 -keep class com.google.common.** { *; }
 -dontwarn org.apache.http.**
 -keep class org.apache.http.** { *; }
+
+# Baseline profiles
+-dontwarn androidx.profileinstaller.**
+-keep class androidx.profileinstaller.** { *; }

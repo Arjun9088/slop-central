@@ -11,6 +11,7 @@ import com.expensetracker.data.sync.SheetsResult
 import com.expensetracker.data.sync.SpreadsheetInfo
 import com.expensetracker.data.sync.SyncPreferences
 import com.expensetracker.data.sync.SyncWorker
+import com.expensetracker.data.sync.ThemeMode
 import com.expensetracker.sms.NotificationExpenseListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,7 +39,8 @@ data class SettingsUiState(
     val showSheetPicker: Boolean = false,
     val showTabPicker: Boolean = false,
     val consentIntent: Intent? = null,
-    val notificationAccessEnabled: Boolean = false
+    val notificationAccessEnabled: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM
 )
 
 @HiltViewModel
@@ -66,7 +68,8 @@ class SettingsViewModel @Inject constructor(
             spreadsheetName = syncPreferences.getSpreadsheetId(),
             sheetName = syncPreferences.getSheetName(),
             syncEnabled = syncPreferences.isSyncEnabled(),
-            lastSyncTime = syncPreferences.getLastSyncTime()
+            lastSyncTime = syncPreferences.getLastSyncTime(),
+            themeMode = syncPreferences.getThemeMode()
         )
     }
 
@@ -278,6 +281,11 @@ class SettingsViewModel @Inject constructor(
         _uiState.update {
             it.copy(notificationAccessEnabled = NotificationExpenseListener.isEnabled(context))
         }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        syncPreferences.setThemeMode(mode)
+        _uiState.update { it.copy(themeMode = mode) }
     }
 
     fun clearImportMessage() {

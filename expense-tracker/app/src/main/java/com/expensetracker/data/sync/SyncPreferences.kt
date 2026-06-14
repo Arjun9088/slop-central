@@ -6,6 +6,18 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK;
+
+    companion object {
+        fun fromName(name: String): ThemeMode = when (name.lowercase()) {
+            "light" -> LIGHT
+            "dark" -> DARK
+            else -> SYSTEM
+        }
+    }
+}
+
 @Singleton
 class SyncPreferences @Inject constructor(
     @ApplicationContext context: Context
@@ -41,5 +53,12 @@ class SyncPreferences @Inject constructor(
 
     fun setLastSyncTime(time: Long) {
         prefs.edit().putLong("last_sync_time", time).apply()
+    }
+
+    fun getThemeMode(): ThemeMode =
+        ThemeMode.fromName(prefs.getString("theme_mode", "system") ?: "system")
+
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit().putString("theme_mode", mode.name).apply()
     }
 }

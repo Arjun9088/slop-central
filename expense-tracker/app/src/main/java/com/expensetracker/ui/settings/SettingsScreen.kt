@@ -34,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -57,6 +58,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.expensetracker.sms.NotificationExpenseListener
+import com.expensetracker.data.sync.ThemeMode
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.services.sheets.v4.SheetsScopes
 
@@ -64,7 +66,7 @@ import com.google.api.services.sheets.v4.SheetsScopes
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onToggleDarkMode: () -> Unit,
+    onThemeChanged: (ThemeMode) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -482,13 +484,56 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedButton(
-                onClick = onToggleDarkMode,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Toggle Dark Mode")
-            }
+            ThemeModeOption(
+                label = "Follow system",
+                selected = uiState.themeMode == ThemeMode.SYSTEM,
+                onClick = {
+                    viewModel.setThemeMode(ThemeMode.SYSTEM)
+                    onThemeChanged(ThemeMode.SYSTEM)
+                }
+            )
+            ThemeModeOption(
+                label = "Light",
+                selected = uiState.themeMode == ThemeMode.LIGHT,
+                onClick = {
+                    viewModel.setThemeMode(ThemeMode.LIGHT)
+                    onThemeChanged(ThemeMode.LIGHT)
+                }
+            )
+            ThemeModeOption(
+                label = "Dark",
+                selected = uiState.themeMode == ThemeMode.DARK,
+                onClick = {
+                    viewModel.setThemeMode(ThemeMode.DARK)
+                    onThemeChanged(ThemeMode.DARK)
+                }
+            )
         }
+    }
+}
+
+@Composable
+private fun ThemeModeOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
 

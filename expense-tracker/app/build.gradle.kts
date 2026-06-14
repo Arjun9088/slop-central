@@ -81,6 +81,12 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.5")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // SplashScreen API
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Profile Installer (ensures baseline profiles are compiled by ART)
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
+
     // Room
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")

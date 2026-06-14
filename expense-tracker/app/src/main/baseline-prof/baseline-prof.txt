@@ -1,0 +1,73 @@
+# Baseline profile for ExpenseTracker
+# Generated manually for startup critical path optimization
+
+# App startup
+HSPLcom/expensetracker/ExpenseTrackerApp;->onCreate()V
+HSPLcom/expensetracker/ui/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLcom/expensetracker/ui/MainActivity;->setContent$lambda$0()V
+
+# Theme
+HSPLcom/expensetracker/ui/theme/ExpenseTrackerTheme;->ExpenseTrackerTheme(Lcom/expensetracker/data/sync/ThemeMode;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+
+# Expense list screen (first visible screen)
+HSPLcom/expensetracker/ui/list/ExpenseListScreen;->ExpenseListScreen(Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lcom/expensetracker/ui/list/ExpenseListViewModel;Landroidx/compose/runtime/Composer;II)V
+
+# ViewModel
+HSPLcom/expensetracker/ui/list/ExpenseListViewModel;-><init>(Lcom/expensetracker/data/db/dao/ExpenseDao;Landroidx/work/WorkManager;)V
+HSPLcom/expensetracker/ui/list/ExpenseListViewModel;->getExpenses()Lkotlinx/coroutines/flow/StateFlow;
+
+# Database
+HSPLcom/expensetracker/data/db/AppDatabase;-><init>()V
+HSPLcom/expensetracker/data/db/dao/ExpenseDao;->observeAll()Lkotlinx/coroutines/flow/Flow;
+
+# Preferences
+HSPLcom/expensetracker/data/sync/SyncPreferences;-><init>(Landroid/content/Context;)V
+HSPLcom/expensetracker/data/sync/SyncPreferences;->getThemeMode()Lcom/expensetracker/data/sync/ThemeMode;
+
+# Hilt
+HSPLdagger/hilt/android/internal/contexts;->**(*)
+HSPLdagger/internal/DoubleCheck;->**(*)
+
+# Compose core
+HSPLandroidx/compose/runtime/CompositionImpl;->**(*)
+HSPLandroidx/compose/runtime/ComposerImpl;->**(*)
+HSPLandroidx/compose/runtime/RecomposeScopeImpl;->**(*)
+
+# Material 3
+HSPLandroidx/compose/material3/MaterialTheme;->**(*)
+HSPLandroidx/compose/material3/ColorScheme;->**(*)
+HSPLandroidx/compose/material3/Typography;->**(*)
+
+# Compose UI
+HSPLandroidx/compose/ui/layout/MeasureScope;->**(*)
+HSPLandroidx/compose/ui/node/LayoutNode;->**(*)
+HSPLandroidx/compose/ui/platform/AndroidComposeView;->**(*)
+
+# Compose Foundation
+HSPLandroidx/compose/foundation/lazy/LazyListState;->**(*)
+HSPLandroidx/compose/foundation/lazy/LazyListKt;->**(*)
+
+# Navigation
+HSPLandroidx/navigation/compose/NavHostKt;->**(*)
+HSPLandroidx/navigation/compose/NavGraphBuilderKt;->**(*)
+HSPLandroidx/navigation/NavHostController;->**(*)
+
+# Room
+HSPLandroidx/room/RoomDatabase;->**(*)
+HSPLandroidx/room/CoroutinesRoom;->**(*)
+HSPLandroidx/room/RoomOpenHelper;->**(*)
+
+# Coroutines
+HSPLkotlinx/coroutines/CoroutineScopeKt;->**(*)
+HSPLkotlinx/coroutines/BuildersKt;->**(*)
+HSPLkotlinx/coroutines/flow/FlowKt;->**(*)
+HSPLkotlinx/coroutines/flow/internal/ChannelFlow;->**(*)
+
+# Lifecycle
+HSPLandroidx/lifecycle/Lifecycle;->**(*)
+HSPLandroidx/lifecycle/LifecycleOwner;->**(*)
+HSPLandroidx/lifecycle/ViewModel;->**(*)
+
+# Splash screen
+HSPLandroidx/core/splashscreen/SplashScreen;->**(*)
+HSPLandroidx/core/splashscreen/SplashScreenViewProvider;->**(*)

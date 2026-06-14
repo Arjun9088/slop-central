@@ -42,6 +42,8 @@ Data is stored locally in a Room database and can be synced bi-directionally wit
 
 The release build is minified with R8/ProGuard.
 
+**IMPORTANT: Always build and install the release (production) APK unless the user explicitly asks for a debug build.** Debug builds run Compose in verification mode with no R8 optimization, no AOT compilation, and no baseline profile — making the UI noticeably laggy. Use `./gradlew :app:assembleRelease` followed by `adb uninstall com.expensetracker && adb install app/build/outputs/apk/release/app-release.apk`. If the device already has a debug build installed, the signatures will differ — always uninstall first.
+
 ## Project Structure
 
 ```

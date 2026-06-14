@@ -8,6 +8,10 @@ import com.expensetracker.data.sync.SyncPreferences
 import com.expensetracker.data.sync.SyncWorker
 import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -25,10 +29,14 @@ class ExpenseTrackerApp : Application(), Configuration.Provider {
     @Inject
     lateinit var workManager: WorkManager
 
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override fun onCreate() {
         super.onCreate()
-        restoreSheetsService()
-        SyncWorker.enqueuePeriodic(workManager)
+        applicationScope.launch {
+            restoreSheetsService()
+            SyncWorker.enqueuePeriodic(workManager)
+        }
     }
 
     private fun restoreSheetsService() {

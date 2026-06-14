@@ -13,6 +13,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.expensetracker.data.sync.SyncPreferences
+import com.expensetracker.data.sync.ThemeMode
 import com.expensetracker.ui.dashboard.DashboardScreen
 import com.expensetracker.ui.entry.EntryScreen
 import com.expensetracker.ui.list.ExpenseListScreen
@@ -20,17 +22,20 @@ import com.expensetracker.ui.receipt.ReceiptScreen
 import com.expensetracker.ui.settings.SettingsScreen
 import com.expensetracker.ui.theme.ExpenseTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var syncPreferences: SyncPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var darkTheme by remember { mutableStateOf(false) }
+            var themeMode by remember { mutableStateOf(syncPreferences.getThemeMode()) }
 
-            ExpenseTrackerTheme(darkTheme = darkTheme) {
+            ExpenseTrackerTheme(themeMode = themeMode) {
                 val navController = rememberNavController()
 
                 NavHost(
@@ -64,7 +69,10 @@ class MainActivity : ComponentActivity() {
                     composable("settings") {
                         SettingsScreen(
                             onBack = { navController.popBackStack() },
-                            onToggleDarkMode = { darkTheme = !darkTheme }
+                            onThemeChanged = { mode ->
+                                syncPreferences.setThemeMode(mode)
+                                themeMode = mode
+                            }
                         )
                     }
                     composable("dashboard") {
@@ -81,4 +89,5 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 }
