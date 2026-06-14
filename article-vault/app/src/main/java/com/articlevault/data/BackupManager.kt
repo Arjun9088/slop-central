@@ -17,7 +17,8 @@ import javax.inject.Singleton
 
 @Singleton
 class BackupManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val appStorage: AppStorage
 ) {
     companion object {
         private const val TAG = "BackupManager"
@@ -26,8 +27,8 @@ class BackupManager @Inject constructor(
         private const val DB_SHM = "article_vault.db-shm"
     }
 
-    private val dbFile = File(context.getExternalFilesDir(null), DB_NAME)
-    private val articlesDir = File(context.filesDir, "articles")
+    private val dbFile get() = appStorage.dbFile
+    private val articlesDir get() = appStorage.articlesDir
 
     data class BackupResult(val success: Boolean, val path: String? = null, val error: String? = null)
 

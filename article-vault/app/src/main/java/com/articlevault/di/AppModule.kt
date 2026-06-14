@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.work.WorkManager
+import com.articlevault.data.AppStorage
 import com.articlevault.data.db.AppDatabase
 import com.articlevault.data.db.dao.ArticleDao
 import com.articlevault.data.db.dao.FolderDao
@@ -14,7 +15,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import java.io.File
 import javax.inject.Singleton
 
 @Module
@@ -23,8 +23,15 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        val dbFile = File(context.getExternalFilesDir(null), "article_vault.db")
+    fun provideAppStorage(@ApplicationContext context: Context): AppStorage {
+        return AppStorage(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context, appStorage: AppStorage): AppDatabase {
+        appStorage.initializeStorage()
+        val dbFile = appStorage.dbFile
 
         val migration2to3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {

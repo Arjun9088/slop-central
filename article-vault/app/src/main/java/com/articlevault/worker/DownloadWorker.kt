@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.articlevault.data.AppStorage
 import com.articlevault.data.db.entity.Article
 import com.articlevault.data.repository.ArticleRepository
 import com.articlevault.ml.DomainClassifier
@@ -23,7 +24,8 @@ import java.util.concurrent.TimeUnit
 class DownloadWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val repository: ArticleRepository
+    private val repository: ArticleRepository,
+    private val appStorage: AppStorage
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -124,7 +126,7 @@ class DownloadWorker @AssistedInject constructor(
                 }
 
                 // Save HTML to file (avoids SQLite CursorWindow 2MB limit)
-                val articlesDir = File(applicationContext.filesDir, "articles")
+                val articlesDir = appStorage.articlesDir
                 articlesDir.mkdirs()
                 val htmlFile = File(articlesDir, "$articleId.html")
                 htmlFile.writeText(html)

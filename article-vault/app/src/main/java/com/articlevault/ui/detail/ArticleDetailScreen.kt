@@ -1,5 +1,6 @@
 package com.articlevault.ui.detail
 
+import android.content.Context
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
@@ -18,11 +19,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
+
+private fun loadReaderModeScript(context: Context): String {
+    val readabilityJs = context.assets.open("vendor/mozilla/readability/0.6.0/Readability.min.js")
+        .bufferedReader().use { it.readText() }
+    val readerModeJs = context.assets.open("reader_mode.js")
+        .bufferedReader().use { it.readText() }
+    return readabilityJs + "\n" + readerModeJs
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +48,8 @@ fun ArticleDetailScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val scrollStore = viewModel.scrollStore
     val readingPrefs = viewModel.readingPrefs
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var loadedArticleId by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
@@ -44,6 +57,9 @@ fun ArticleDetailScreen(
     var lastNotifiedProgress by remember { mutableFloatStateOf(0f) }
     var topBarVisible by remember { mutableStateOf(true) }
     var zapMode by remember { mutableStateOf(false) }
+    var readerModeActive by remember { mutableStateOf(false) }
+    var readerModeJsLoaded by remember { mutableStateOf(false) }
+    val readerModeScript by remember { mutableStateOf(loadReaderModeScript(context)) }
 
     fun injectZapper(wv: WebView) {
         wv.evaluateJavascript("""
@@ -73,10 +89,63 @@ fun ArticleDetailScreen(
         """.trimIndent(), null)
     }
 
+    fun Color.toHexString(): String {
+        val argb = toArgb()
+        return String.format("#%06X", 0xFFFFFF and argb)
+    }
+
+    fun buildThemeJson(): String {
+        val surface = colorScheme.surface
+        val onSurface = colorScheme.onSurface
+        val onSurfaceVariant = colorScheme.onSurfaceVariant
+        val primary = colorScheme.primary
+        val outlineVariant = colorScheme.outlineVariant
+        val surfaceVariant = colorScheme.surfaceVariant
+        val luminance = 0.2126f * surface.red + 0.7152f * surface.green + 0.0722f * surface.blue
+        val isDark = luminance < 0.5f
+        return """{
+            isLight: ${!isDark},
+            backgroundColor: "${surface.toHexString()}",
+            textColor: "${onSurface.toHexString()}",
+            headingColor: "${onSurface.toHexString()}",
+            secondaryTextColor: "${onSurfaceVariant.toHexString()}",
+            linkColor: "${primary.toHexString()}",
+            dividerColor: "${outlineVariant.toHexString()}",
+            codeBackgroundColor: "${surfaceVariant.toHexString()}"
+        }"""
+    }
+
+    fun enableReaderMode(wv: WebView) {
+        wv.settings.javaScriptEnabled = true
+        val themeJson = buildThemeJson()
+        val js = """
+            $readerModeScript
+            ArticleVaultReaderMode.setTheme($themeJson);
+            ArticleVaultReaderMode.enable();
+        """.trimIndent()
+        wv.evaluateJavascript(js) { result ->
+            val cleaned = result?.trim('"') ?: ""
+            if (cleaned == "enabled") {
+                readerModeActive = true
+                readerModeJsLoaded = true
+            } else {
+                readerModeActive = false
+            }
+        }
+    }
+
+    fun disableReaderMode(wv: WebView) {
+        wv.evaluateJavascript("ArticleVaultReaderMode.disable();") { result ->
+            readerModeActive = false
+        }
+    }
+
     LaunchedEffect(article) {
         article?.let {
             viewModel.loadHtmlContent(it.htmlPath)
             viewModel.updateLastOpenedAt(articleId)
+            readerModeActive = false
+            readerModeJsLoaded = false
         }
     }
 
@@ -245,6 +314,21 @@ fun ArticleDetailScreen(
                         if (!showSearch) {
                             IconButton(onClick = { topBarVisible = false }) {
                                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Hide toolbar")
+                            }
+                            IconButton(onClick = {
+                                webViewRef?.let { wv ->
+                                    if (readerModeActive) {
+                                        disableReaderMode(wv)
+                                    } else {
+                                        enableReaderMode(wv)
+                                    }
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.List,
+                                    contentDescription = "Reader mode",
+                                    tint = if (readerModeActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
                             }
                             IconButton(onClick = { zapMode = !zapMode }) {
                                 Icon(

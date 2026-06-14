@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ModelSelectionScreen(
     onBack: () -> Unit,
+    isDarkMode: Boolean = false,
     onToggleDarkMode: () -> Unit = {},
     viewModel: ModelSelectionViewModel = hiltViewModel()
 ) {
@@ -227,7 +228,7 @@ fun ModelSelectionScreen(
                         )
                     }
                     Switch(
-                        checked = viewModel.isDarkMode(),
+                        checked = isDarkMode,
                         onCheckedChange = { onToggleDarkMode() }
                     )
                 }

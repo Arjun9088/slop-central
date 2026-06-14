@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <files-path name="articles" path="articles/" />
+    <files-path name="articles_internal" path="articles/" />
+    <external-path name="articles_external" path="ArticleVault/articles/" />
+    <external-path name="db_external" path="ArticleVault/" />
 </paths>

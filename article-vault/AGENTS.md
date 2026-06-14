@@ -26,11 +26,12 @@ Single-module Android app. All source under `app/src/main/java/com/articlevault/
 ## Critical Gotchas
 
 ### Room Database
-- **DB is on external storage** (`getExternalFilesDir`), not internal. Persists across reinstalls.
+- **DB is on public external storage** (`/sdcard/ArticleVault/`), not internal app storage. Survives uninstalls.
 - **Version must be bumped** in `AppDatabase.kt` when schema changes. Add migration in `AppModule.kt`.
-- Current version: **4**. Migrations: 2→3 (add htmlContent), 3→4 (add summary).
+- Current version: **7**. Migrations: 2→3 (add htmlContent), 3→4 (add summary), 4→5 (read flag + folders), 5→6 (htmlPath), 6→7 (wordCount, domain, readingProgress, readAt, lastOpenedAt).
 - `Article.extractedText` maps to DB column `content` via `@ColumnInfo(name = "content")` — required for FTS4 `contentEntity` to match.
 - FTS4 uses `@Fts4(contentEntity = Article::class)` — Room auto-syncs via triggers. No manual FTS insert needed.
+- **Storage permission** (`MANAGE_EXTERNAL_STORAGE` on Android 11+) is required on first launch. The app gates on this and offers migration from old location.
 
 ### WorkManager
 - All workers **must** have `@HiltWorker` annotation or they silently fail.
@@ -90,6 +91,6 @@ Single-module Android app. All source under `app/src/main/java/com/articlevault/
 
 | Path | Content |
 |---|---|
-| `/Android/data/com.articlevault/files/article_vault.db` | SQLite database |
-| `/Android/data/com.articlevault/files/models/` | Downloaded LLM models |
+| `/sdcard/ArticleVault/article_vault.db` | SQLite database (public, survives uninstalls) |
+| `/sdcard/ArticleVault/articles/*.html` | Saved article HTML files (public, survives uninstalls) |
 | `/data/data/com.articlevault/shared_prefs/model_prefs.json` | Selected model + HF token |
