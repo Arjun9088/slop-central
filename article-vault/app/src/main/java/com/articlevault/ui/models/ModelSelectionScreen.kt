@@ -3,12 +3,33 @@ package com.articlevault.ui.models
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,7 +51,7 @@ fun ModelSelectionScreen(
 
     var showBackupDialog by remember { mutableStateOf(false) }
     var backupResultMsg by remember { mutableStateOf<String?>(null) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val activityResult = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -44,16 +65,17 @@ fun ModelSelectionScreen(
         }
     }
 
-    // API Settings dialog
     if (showApiDialog) {
         AlertDialog(
             onDismissRequest = { showApiDialog = false },
             title = { Text("API Settings") },
             text = {
                 Column {
-                    Text("Works with OpenAI, Ollama, LiteLLM, vLLM, or any OpenAI-compatible endpoint.",
+                    Text(
+                        "Works with OpenAI, Ollama, LiteLLM, vLLM, or any OpenAI-compatible endpoint.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = apiEndpointInput,
@@ -63,7 +85,7 @@ fun ModelSelectionScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = apiKeyInput,
                         onValueChange = { apiKeyInput = it },
@@ -72,7 +94,7 @@ fun ModelSelectionScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = apiModelInput,
                         onValueChange = { apiModelInput = it },
@@ -97,31 +119,43 @@ fun ModelSelectionScreen(
         )
     }
 
-    // Backup dialog
     if (showBackupDialog) {
         AlertDialog(
             onDismissRequest = { showBackupDialog = false },
             title = { Text("Backup & Restore") },
             text = {
                 Column {
-                    Text("Backup saves your database and articles to a ZIP file in Downloads. Restore loads a previously saved backup.",
+                    Text(
+                        "Backup saves your database and articles to a ZIP file in Downloads. Restore loads a previously saved backup.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     if (backupResultMsg != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(backupResultMsg!!, style = MaterialTheme.typography.bodySmall,
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            backupResultMsg!!,
+                            style = MaterialTheme.typography.bodySmall,
                             color = if (backupResultMsg!!.contains("successful"))
                                 MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error)
+                            else MaterialTheme.colorScheme.error
+                        )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
                             viewModel.backup { backupResultMsg = "Backed up to Downloads" }
-                        }) { Text("Export") }
+                        }) {
+                            Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Export")
+                        }
                         OutlinedButton(onClick = {
                             activityResult.launch("application/zip")
-                        }) { Text("Import") }
+                        }) {
+                            Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Import")
+                        }
                     }
                 }
             },
@@ -132,107 +166,220 @@ fun ModelSelectionScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            // Error
             if (state.error != null) {
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        state.error!!,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            // API Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { showApiDialog = true }
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Summarization API", style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (viewModel.isApiConfigured()) {
-                            "Endpoint: ${viewModel.getApiEndpoint()}\nModel: ${viewModel.getApiModel()}"
-                        } else {
-                            "Not configured — tap to set up"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (viewModel.isApiConfigured()) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Backup & Restore
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { showBackupDialog = true }
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Backup & Restore", style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Export/import database and articles as ZIP",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Dark Mode
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Dark Mode", style = MaterialTheme.typography.titleSmall)
-                        Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            "White text on black background",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            state.error!!,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Switch(
-                        checked = isDarkMode,
-                        onCheckedChange = { onToggleDarkMode() }
-                    )
                 }
             }
+
+            // ── Appearance section ──
+            SectionHeader("Appearance")
+            SettingsCard {
+            SettingsToggle(
+                icon = Icons.Default.Lock,
+                title = "Dark Mode",
+                subtitle = "White text on black background",
+                checked = isDarkMode,
+                onCheckedChange = { onToggleDarkMode() }
+            )
+            }
+
+            // ── AI section ──
+            SectionHeader("AI Summarization")
+            SettingsCard {
+                SettingsClickable(
+                    icon = Icons.Default.Build,
+                    title = "Summarization API",
+                    subtitle = if (viewModel.isApiConfigured()) {
+                        "Endpoint: ${viewModel.getApiEndpoint()}\nModel: ${viewModel.getApiModel()}"
+                    } else {
+                        "Not configured — tap to set up"
+                    },
+                    onClick = { showApiDialog = true }
+                )
+            }
+
+            // ── Data section ──
+            SectionHeader("Data")
+            SettingsCard {
+                SettingsClickable(
+                    icon = Icons.Default.Star,
+                    title = "Backup & Restore",
+                    subtitle = "Export/import database and articles as ZIP",
+                    onClick = { showBackupDialog = true }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+// ──────────────────────────────────────────────
+// Section header
+// ──────────────────────────────────────────────
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 28.dp, end = 16.dp, top = 24.dp, bottom = 8.dp)
+    )
+}
+
+// ──────────────────────────────────────────────
+// Settings card container
+// ──────────────────────────────────────────────
+@Composable
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(4.dp)) {
+            content()
+        }
+    }
+}
+
+// ──────────────────────────────────────────────
+// Settings list items
+// ──────────────────────────────────────────────
+@Composable
+private fun SettingsToggle(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+@Composable
+private fun SettingsClickable(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

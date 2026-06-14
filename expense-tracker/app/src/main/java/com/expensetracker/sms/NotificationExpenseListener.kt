@@ -88,6 +88,9 @@ class NotificationExpenseListener : NotificationListenerService() {
         val expenseDao = database.expenseDao()
         if (expenseDao.countByDedupHash(parsed.dedupHash) > 0) return
 
+        val timeWindow = System.currentTimeMillis() - DEDUP_TIME_WINDOW_MS
+        if (expenseDao.countByAmountAndTimeWindow(parsed.amount, timeWindow) > 0) return
+
         val category = CategoryClassifier.classify(parsed.merchant)
 
         val expense = Expense(
@@ -126,6 +129,7 @@ class NotificationExpenseListener : NotificationListenerService() {
 
     companion object {
         private const val TAG = "NotificationExpenseListener"
+        private const val DEDUP_TIME_WINDOW_MS = 60_000L
 
         /**
          * Package names or substrings for apps that commonly show transaction

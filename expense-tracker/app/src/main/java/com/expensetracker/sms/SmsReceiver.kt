@@ -50,6 +50,9 @@ class SmsReceiver : BroadcastReceiver() {
         val existing = expenseDao.countByDedupHash(parsed.dedupHash)
         if (existing > 0) return
 
+        val timeWindow = System.currentTimeMillis() - DEDUP_TIME_WINDOW_MS
+        if (expenseDao.countByAmountAndTimeWindow(parsed.amount, timeWindow) > 0) return
+
         val category = CategoryClassifier.classify(parsed.merchant)
 
         val expense = Expense(
@@ -65,5 +68,9 @@ class SmsReceiver : BroadcastReceiver() {
 
         expenseDao.insert(expense)
         SyncWorker.enqueueOneTime(workManager)
+    }
+
+    companion object {
+        private const val DEDUP_TIME_WINDOW_MS = 60_000L
     }
 }

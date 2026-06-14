@@ -6,82 +6,117 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Light theme colors
-private val LightPrimary = Color(0xFF1A1A1A)
-private val LightOnPrimary = Color(0xFFFFFFFF)
-private val LightBackground = Color(0xFFFFFFFF)
-private val LightSurface = Color(0xFFFFFFFF)
-private val LightOnBackground = Color(0xFF1A1A1A)
-private val LightOnSurface = Color(0xFF1A1A1A)
-private val LightSurfaceVariant = Color(0xFFF5F5F5)
-private val LightOnSurfaceVariant = Color(0xFF9E9E9E)
-private val LightOutline = Color(0xFFE0E0E0)
+// ──────────────────────────────────────────────
+// Brand color: a warm, readable accent that works in both modes
+// ──────────────────────────────────────────────
+private val AccentLight = Color(0xFFB85C38)
+private val AccentDark = Color(0xFFE8A88C)
 
-// Dark theme colors
-private val DarkPrimary = Color(0xFFFFFFFF)
-private val DarkOnPrimary = Color(0xFF1A1A1A)
-private val DarkBackground = Color(0xFF121212)
-private val DarkSurface = Color(0xFF1E1E1E)
-private val DarkOnBackground = Color(0xFFE0E0E0)
-private val DarkOnSurface = Color(0xFFE0E0E0)
-private val DarkSurfaceVariant = Color(0xFF2C2C2C)
-private val DarkOnSurfaceVariant = Color(0xFF9E9E9E)
-private val DarkOutline = Color(0xFF3E3E3E)
-
+// ──────────────────────────────────────────────
+// Light theme
+// ──────────────────────────────────────────────
 private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    primaryContainer = Color(0xFFE8E8E8),
-    onPrimaryContainer = LightPrimary,
-    secondary = LightOnSurfaceVariant,
-    onSecondary = LightOnPrimary,
-    secondaryContainer = LightSurfaceVariant,
-    onSecondaryContainer = LightPrimary,
-    tertiary = LightOnSurfaceVariant,
-    onTertiary = LightOnPrimary,
-    background = LightBackground,
-    onBackground = LightOnBackground,
-    surface = LightSurface,
-    onSurface = LightOnSurface,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightOnSurfaceVariant,
-    outline = LightOutline,
-    outlineVariant = LightOutline,
-    inverseSurface = LightPrimary,
-    inverseOnSurface = LightBackground,
+    primary = Color(0xFF1A1A1A),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFF2EDE8),
+    onPrimaryContainer = Color(0xFF1A1A1A),
+
+    secondary = Color(0xFF6B6B6B),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFEEEEEE),
+    onSecondaryContainer = Color(0xFF2A2A2A),
+
+    tertiary = AccentLight,
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFFCEAE0),
+    onTertiaryContainer = Color(0xFF5A2A12),
+
+    background = Color(0xFFFAFAF8),
+    onBackground = Color(0xFF1A1A1A),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF1A1A1A),
+    surfaceVariant = Color(0xFFF5F4F1),
+    onSurfaceVariant = Color(0xFF6B6B6B),
+
+    surfaceContainer = Color(0xFFF5F4F1),
+    surfaceContainerLow = Color(0xFFFAF9F6),
+    surfaceContainerHigh = Color(0xFFEFEEE9),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerHighest = Color(0xFFE9E7E2),
+
+    outline = Color(0xFFD4D2CD),
+    outlineVariant = Color(0xFFE4E2DD),
+    inverseSurface = Color(0xFF2A2A2A),
+    inverseOnSurface = Color(0xFFF5F4F1),
+
     error = Color(0xFFBA1A1A),
-    onError = LightOnPrimary,
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
 )
 
+// ──────────────────────────────────────────────
+// Dark theme
+// ──────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    primaryContainer = Color(0xFF3E3E3E),
-    onPrimaryContainer = DarkPrimary,
-    secondary = DarkOnSurfaceVariant,
-    onSecondary = DarkOnPrimary,
-    secondaryContainer = DarkSurfaceVariant,
-    onSecondaryContainer = DarkPrimary,
-    tertiary = DarkOnSurfaceVariant,
-    onTertiary = DarkOnPrimary,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
-    outline = DarkOutline,
-    outlineVariant = DarkOutline,
-    inverseSurface = DarkPrimary,
-    inverseOnSurface = DarkBackground,
+    primary = Color(0xFFE8E8E8),
+    onPrimary = Color(0xFF1A1A1A),
+    primaryContainer = Color(0xFF3A3A3A),
+    onPrimaryContainer = Color(0xFFEEEEEE),
+
+    secondary = Color(0xFFA0A0A0),
+    onSecondary = Color(0xFF1A1A1A),
+    secondaryContainer = Color(0xFF2C2C2C),
+    onSecondaryContainer = Color(0xFFD4D4D4),
+
+    tertiary = AccentDark,
+    onTertiary = Color(0xFF3A1A08),
+    tertiaryContainer = Color(0xFF5A2A12),
+    onTertiaryContainer = Color(0xFFFCEAE0),
+
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFE4E4E4),
+    surface = Color(0xFF1A1A1A),
+    onSurface = Color(0xFFE4E4E4),
+    surfaceVariant = Color(0xFF2A2A2A),
+    onSurfaceVariant = Color(0xFFA8A8A8),
+
+    surfaceContainer = Color(0xFF222222),
+    surfaceContainerLow = Color(0xFF1C1C1C),
+    surfaceContainerHigh = Color(0xFF2A2A2A),
+    surfaceContainerLowest = Color(0xFF161616),
+    surfaceContainerHighest = Color(0xFF333333),
+
+    outline = Color(0xFF4A4A4A),
+    outlineVariant = Color(0xFF333333),
+    inverseSurface = Color(0xFFE4E4E4),
+    inverseOnSurface = Color(0xFF1A1A1A),
+
     error = Color(0xFFFFB4AB),
-    onError = DarkOnPrimary,
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
 )
 
-private val InstapaperTypography = Typography(
+private val AppTypography = Typography(
+    displayLarge = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 57.sp,
+        lineHeight = 64.sp,
+        letterSpacing = (-0.25).sp,
+    ),
+    displayMedium = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 45.sp,
+        lineHeight = 52.sp,
+    ),
+    displaySmall = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+    ),
     headlineLarge = TextStyle(
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
@@ -95,28 +130,28 @@ private val InstapaperTypography = Typography(
         letterSpacing = (-0.3).sp,
     ),
     headlineSmall = TextStyle(
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
         letterSpacing = (-0.2).sp,
     ),
     titleLarge = TextStyle(
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
-        letterSpacing = (-0.2).sp,
+        letterSpacing = (-0.1).sp,
     ),
     titleMedium = TextStyle(
-        fontWeight = FontWeight.Bold,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
-        letterSpacing = (-0.1).sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.sp,
     ),
     titleSmall = TextStyle(
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.1.sp,
     ),
     bodyLarge = TextStyle(
         fontWeight = FontWeight.Normal,
@@ -128,44 +163,44 @@ private val InstapaperTypography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 21.sp,
-        letterSpacing = 0.15.sp,
+        letterSpacing = 0.2.sp,
     ),
     bodySmall = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 19.sp,
-        letterSpacing = 0.1.sp,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.3.sp,
     ),
     labelLarge = TextStyle(
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.1.sp,
     ),
     labelMedium = TextStyle(
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp,
     ),
     labelSmall = TextStyle(
         fontWeight = FontWeight.Medium,
-        fontSize = 10.sp,
-        lineHeight = 14.sp,
+        fontSize = 11.sp,
+        lineHeight = 15.sp,
         letterSpacing = 0.5.sp,
     ),
 )
 
 @Composable
 fun ArticleVaultTheme(
-    darkTheme: Boolean = false,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = InstapaperTypography,
+        typography = AppTypography,
         content = content
     )
 }

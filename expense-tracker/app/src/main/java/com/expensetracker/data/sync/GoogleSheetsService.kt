@@ -372,6 +372,10 @@ class GoogleSheetsService @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 val sheetRows = fetchAllRows()
+                if (sheetRows.isEmpty()) {
+                    Log.w("GoogleSheetsService", "Full sync: sheet returned empty rows, aborting to protect local data")
+                    return@withContext SyncResult.Error(IllegalStateException("Sheet fetch returned empty; skipping sync to protect local data"))
+                }
                 val sheetExpenses = parseRowsToSheetExpenses(sheetRows)
                 val localExpenses = expenseDao.getAllSyncedAndUnsynced()
 
@@ -395,8 +399,8 @@ class GoogleSheetsService @Inject constructor(
                     if (local.sheetRowId != null) {
                         val sheetExp = sheetByRowId[local.sheetRowId]
                         if (sheetExp == null) {
-                            expenseDao.delete(local)
-                            deleted++
+                            // Sheet is append-only; unlink local record so it can be re-pushed
+                            expenseDao.update(local.copy(sheetRowId = null, syncedToSheet = false))
                         } else if (local.modifiedAt > sheetExp.modifiedAt) {
                             updateRow(local.sheetRowId, local)
                             expenseDao.markSynced(local.id, local.sheetRowId)
@@ -425,23 +429,17 @@ class GoogleSheetsService @Inject constructor(
 
                 for (sheetExp in sheetExpenses) {
                     if (sheetExp.rowNumber !in localBySheetRowId.keys) {
-                        // Row exists in sheet but not locally → was deleted locally → delete from sheet
+                        // Row exists in sheet but not locally → link by natural key if possible
                         val localMatch = expenseDao.findByNaturalKey(
                             sheetExp.date, sheetExp.description, sheetExp.amount
                         )
-                        if (localMatch != null) {
-                            // Found by natural key, link it
-                            if (localMatch.sheetRowId == null) {
-                                expenseDao.update(localMatch.copy(
-                                    sheetRowId = sheetExp.rowNumber,
-                                    syncedToSheet = true
-                                ))
-                            }
-                        } else {
-                            // No local match at all → delete from sheet
-                            deleteRow(sheetExp.rowNumber)
-                            deleted++
+                        if (localMatch != null && localMatch.sheetRowId == null) {
+                            expenseDao.update(localMatch.copy(
+                                sheetRowId = sheetExp.rowNumber,
+                                syncedToSheet = true
+                            ))
                         }
+                        // Sheet is append-only; never delete rows from it
                     }
                 }
 

@@ -84,6 +84,9 @@ interface ExpenseDao {
     @Query("SELECT COUNT(*) FROM expenses WHERE dedupHash = :hash LIMIT 1")
     suspend fun countByDedupHash(hash: String): Int
 
+    @Query("SELECT COUNT(*) FROM expenses WHERE amount = :amount AND createdAt >= :since LIMIT 1")
+    suspend fun countByAmountAndTimeWindow(amount: Double, since: Long): Int
+
     @Query("SELECT * FROM expenses WHERE date >= :startDate AND date <= :endDate ORDER BY amount DESC LIMIT :limit")
     suspend fun getTopExpensesInRange(startDate: String, endDate: String, limit: Int = 5): List<Expense>
 

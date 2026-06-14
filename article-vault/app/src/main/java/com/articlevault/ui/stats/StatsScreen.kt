@@ -6,10 +6,14 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +23,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,28 +41,26 @@ fun StatsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Reading Stats") },
+                title = { Text("Reading Stats", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Overview cards
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -72,22 +75,21 @@ fun StatsScreen(
                     )
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Done,
+                        icon = Icons.Default.CheckCircle,
                         label = "Read",
                         value = state.totalRead.toString(),
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Info,
-                        label = "Avg Read",
+                        icon = Icons.Default.Star,
+                        label = "Avg",
                         value = "${state.avgReadingTimeMinutes}m",
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
 
-            // Words stats
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -102,7 +104,7 @@ fun StatsScreen(
                     )
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Done,
+                        icon = Icons.Default.Star,
                         label = "Words Read",
                         value = formatNumber(state.totalWordsRead),
                         color = MaterialTheme.colorScheme.tertiary
@@ -110,7 +112,6 @@ fun StatsScreen(
                 }
             }
 
-            // Streak section
             item {
                 StreakCard(
                     currentStreak = state.currentStreak,
@@ -118,92 +119,93 @@ fun StatsScreen(
                 )
             }
 
-            // Top domains
             if (state.topDomains.isNotEmpty()) {
                 item {
-                    Text(
-                        "Top Sources",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    SectionLabel("Top Sources")
                 }
                 item {
                     DomainChart(domains = state.topDomains)
                 }
             }
 
-            // Domain type distribution
             if (state.domainTypeDistribution.isNotEmpty()) {
                 item {
-                    Text(
-                        "Content Mix",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    SectionLabel("Content Mix")
                 }
                 item {
                     DomainTypeChart(types = state.domainTypeDistribution)
                 }
             }
 
-            // Reading activity (last 30 days)
             if (state.readingActivity.isNotEmpty()) {
                 item {
-                    Text(
-                        "Articles Read (Last 30 Days)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    SectionLabel("Articles Read (Last 30 Days)")
                 }
                 item {
                     ActivityChart(data = state.readingActivity)
                 }
             }
 
-            // Articles saved activity
             if (state.articlesPerDay.isNotEmpty()) {
                 item {
-                    Text(
-                        "Articles Saved (Last 30 Days)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    SectionLabel("Articles Saved (Last 30 Days)")
                 }
                 item {
                     ActivityChart(data = state.articlesPerDay)
                 }
             }
-
-            // Bottom spacer
-            item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
 }
 
 @Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+    )
+}
+
+@Composable
 private fun StatCard(
     modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String,
     color: Color
 ) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.Start
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = CircleShape,
+                color = color.copy(alpha = 0.12f),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 value,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = color
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -215,73 +217,56 @@ private fun StreakCard(currentStreak: Int, longestStreak: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        )
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "$currentStreak",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "Current Streak",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                VerticalDivider(
-                    modifier = Modifier.height(60.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "$longestStreak",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                    Text(
-                        "Best Streak",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (currentStreak > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    if (currentStreak == 1) "1 day in a row! Keep going!"
-                    else "$currentStreak days in a row! Keep it up!",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
+            StreakColumn(
+                value = currentStreak,
+                label = "Current Streak",
+                color = MaterialTheme.colorScheme.tertiary,
+                icon = Icons.Default.Lock
+            )
+            Box(
+                modifier = Modifier
+                    .height(56.dp)
+                    .width(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+            StreakColumn(
+                value = longestStreak,
+                label = "Best Streak",
+                color = MaterialTheme.colorScheme.primary,
+                icon = Icons.Default.Star
+            )
         }
+    }
+}
+
+@Composable
+private fun StreakColumn(value: Int, label: String, color: Color, icon: ImageVector) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            value.toString(),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -289,19 +274,24 @@ private fun StreakCard(currentStreak: Int, longestStreak: Int) {
 private fun DomainChart(domains: List<com.articlevault.data.db.dao.DomainCount>) {
     val maxCount = domains.firstOrNull()?.count ?: 1
     val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             domains.take(8).forEach { dc ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         dc.domain,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.width(100.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.width(110.dp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -310,28 +300,25 @@ private fun DomainChart(domains: List<com.articlevault.data.db.dao.DomainCount>)
                         Canvas(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(16.dp)
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
                         ) {
-                            drawRoundRect(
-                                color = surfaceVariant,
-                                cornerRadius = CornerRadius(4f, 4f)
-                            )
-                            drawRoundRect(
+                            drawRect(color = trackColor, size = size)
+                            drawRect(
                                 color = primaryColor,
                                 size = Size(
                                     size.width * (dc.count.toFloat() / maxCount),
                                     size.height
-                                ),
-                                cornerRadius = CornerRadius(4f, 4f)
+                                )
                             )
                         }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         dc.count.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.width(24.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.width(28.dp),
                         textAlign = TextAlign.End
                     )
                 }
@@ -345,23 +332,27 @@ private fun DomainTypeChart(types: Map<DomainClassifier.SiteType, Int>) {
     val total = types.values.sum().toFloat()
     val colors = listOf(
         MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.error,
         MaterialTheme.colorScheme.primaryContainer,
-        MaterialTheme.colorScheme.secondaryContainer,
         MaterialTheme.colorScheme.tertiaryContainer,
+        MaterialTheme.colorScheme.secondaryContainer,
         MaterialTheme.colorScheme.errorContainer,
     )
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Horizontal stacked bar
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(24.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(10.dp))
             ) {
                 var xOffset = 0f
                 types.entries.forEachIndexed { index, (_, count) ->
@@ -374,27 +365,26 @@ private fun DomainTypeChart(types: Map<DomainClassifier.SiteType, Int>) {
                     xOffset += width
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            // Legend
+            Spacer(modifier = Modifier.height(16.dp))
             types.entries.forEachIndexed { index, (type, count) ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .size(10.dp)
+                            .clip(CircleShape)
                             .background(colors[index % colors.size])
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         type.label,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "$count (${(count * 100 / total).toInt()}%)",
+                        "$count · ${(count * 100 / total).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -408,10 +398,15 @@ private fun DomainTypeChart(types: Map<DomainClassifier.SiteType, Int>) {
 private fun ActivityChart(data: Map<String, Int>) {
     val maxVal = data.values.maxOrNull()?.coerceAtLeast(1) ?: 1
     val barColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val entries = data.entries.toList()
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier
@@ -420,22 +415,20 @@ private fun ActivityChart(data: Map<String, Int>) {
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
-                entries.forEach { (label, count) ->
+                entries.forEach { (_, count) ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(22.dp)
+                        modifier = Modifier.width(20.dp)
                     ) {
                         Canvas(
                             modifier = Modifier
-                                .width(16.dp)
-                                .height(80.dp)
+                                .width(14.dp)
+                                .height(72.dp)
                         ) {
-                            // Background
                             drawRoundRect(
                                 color = trackColor,
                                 cornerRadius = CornerRadius(3f, 3f)
                             )
-                            // Bar
                             val barHeight = size.height * (count.toFloat() / maxVal)
                             drawRoundRect(
                                 color = barColor,
@@ -447,7 +440,7 @@ private fun ActivityChart(data: Map<String, Int>) {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -459,9 +452,8 @@ private fun ActivityChart(data: Map<String, Int>) {
                         label.takeLast(2),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(22.dp),
-                        textAlign = TextAlign.Center,
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f
+                        modifier = Modifier.width(20.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
             }

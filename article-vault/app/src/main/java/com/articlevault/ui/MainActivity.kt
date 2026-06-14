@@ -90,7 +90,8 @@ class MainActivity : ComponentActivity() {
                             SearchScreen(
                                 onArticleClick = { articleId ->
                                     navController.navigate("article/$articleId")
-                                }
+                                },
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("stats") {
