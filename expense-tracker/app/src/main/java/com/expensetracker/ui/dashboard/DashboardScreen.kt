@@ -1,6 +1,8 @@
 package com.expensetracker.ui.dashboard
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,16 +12,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -29,16 +36,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,8 +56,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expensetracker.data.db.dao.CategoryTotal
 import com.expensetracker.data.db.dao.MonthlyTotal
 import com.expensetracker.data.db.dao.PaymentMethodTotal
+import com.expensetracker.data.db.entity.Expense
 import java.text.NumberFormat
 import java.util.Locale
+
+private val chartColors = listOf(
+    Color(0xFF1A6B3C),
+    Color(0xFF4CAF50),
+    Color(0xFF8BC34A),
+    Color(0xFFFFC107),
+    Color(0xFFFF9800),
+    Color(0xFFF44336),
+    Color(0xFF9C27B0),
+    Color(0xFF2196F3),
+    Color(0xFF009688),
+    Color(0xFF795548),
+    Color(0xFF607D8B),
+    Color(0xFFE91E63),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,7 +82,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
 
     Scaffold(
         topBar = {
@@ -88,20 +114,68 @@ fun DashboardScreen(
                 item { Spacer(modifier = Modifier.height(8.dp)) }
 
                 item {
+                    MonthPickerRow(
+                        monthLabel = state.monthLabel,
+                        canGoForward = viewModel.canGoForward(),
+                        onPrevious = { viewModel.goToPreviousMonth() },
+                        onNext = { viewModel.goToNextMonth() }
+                    )
+                }
+
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        if (state.isCurrentMonth) {
+                            SummaryCard(
+                                title = "Today",
+                                amount = currencyFormat.format(state.todayTotal),
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            SummaryCard(
+                                title = "Total",
+                                amount = currencyFormat.format(state.monthlyTotal),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         SummaryCard(
-                            title = "Today",
-                            amount = currencyFormat.format(state.todayTotal),
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryCard(
-                            title = "This Month",
+                            title = "Month",
                             amount = currencyFormat.format(state.monthlyTotal),
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        StatCard(
+                            label = "Avg/day",
+                            value = currencyFormat.format(state.dailyAverage),
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            label = "Avg/txn",
+                            value = currencyFormat.format(state.avgTransactionAmount),
+                            modifier = Modifier.weight(1f)
+                        )
+                        state.monthChangePercent?.let { pct ->
+                            StatCard(
+                                label = "vs last mo",
+                                value = "${if (pct >= 0) "+" else ""}${"%.0f".format(pct)}%",
+                                valueColor = if (pct > 0)
+                                    Color(0xFFF44336)
+                                else if (pct < 0)
+                                    Color(0xFF4CAF50)
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 
@@ -112,19 +186,106 @@ fun DashboardScreen(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = if (state.isCurrentMonth) "Projected month-end" else "Actual total",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = currencyFormat.format(state.projectedMonthEnd),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Text(
-                                text = "Total Expenses",
-                                style = MaterialTheme.typography.labelLarge,
+                                text = "${state.totalCount} txns",
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text(
-                                text = "${state.totalCount}",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
                         }
+                    }
+                }
+
+                if (state.topExpenses.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Largest This Month",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                    item {
+                        state.topExpenses.first().let { top ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = top.description,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${top.category} • ${top.date}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                    Text(
+                                        text = currencyFormat.format(top.amount),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (state.categoryBreakdown.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "By Category",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+
+                    item {
+                        DonutChart(
+                            data = state.categoryBreakdown,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                        )
+                    }
+
+                    item {
+                        DonutLegend(
+                            data = state.categoryBreakdown,
+                            currencyFormat = currencyFormat,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
@@ -146,23 +307,8 @@ fun DashboardScreen(
                     }
                 }
 
-                if (state.categoryBreakdown.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "By Category",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-
-                    val categoryMax = state.categoryBreakdown.maxOf { it.total }
-                    items(state.categoryBreakdown) { item ->
-                        CategoryRow(item, categoryMax, currencyFormat)
-                    }
-                }
-
                 if (state.paymentBreakdown.isNotEmpty()) {
                     item {
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "By Payment Method",
                             style = MaterialTheme.typography.titleLarge
@@ -176,6 +322,188 @@ fun DashboardScreen(
                 }
 
                 item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthPickerRow(
+    monthLabel: String,
+    canGoForward: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPrevious) {
+            Icon(
+                Icons.Default.KeyboardArrowLeft,
+                contentDescription = "Previous month",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Text(
+            text = monthLabel,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        IconButton(
+            onClick = onNext,
+            enabled = canGoForward
+        ) {
+            Icon(
+                Icons.Default.KeyboardArrowRight,
+                contentDescription = "Next month",
+                tint = if (canGoForward)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatCard(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+                maxLines = 1
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun DonutChart(
+    data: List<CategoryTotal>,
+    modifier: Modifier = Modifier
+) {
+    val total = data.sumOf { it.total }
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = surfaceVariant)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 36f
+                val diameter = (size.minDimension - strokeWidth)
+                val topLeft = Offset(
+                    (size.width - diameter) / 2f,
+                    (size.height - diameter) / 2f
+                )
+                val arcSize = Size(diameter, diameter)
+                var startAngle = -90f
+
+                data.forEachIndexed { index, item ->
+                    val sweep = (((item.total / total) * 360.0).coerceAtLeast(1.0)).toFloat()
+                    drawArc(
+                        color = chartColors[index % chartColors.size],
+                        startAngle = startAngle,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                    startAngle += sweep
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DonutLegend(
+    data: List<CategoryTotal>,
+    currencyFormat: NumberFormat,
+    modifier: Modifier = Modifier
+) {
+    val total = data.sumOf { it.total }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            data.forEachIndexed { index, item ->
+                val pct = if (total > 0) (item.total / total) * 100 else 0.0
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(
+                                chartColors[index % chartColors.size],
+                                CircleShape
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = item.category,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "%.0f%%".format(pct),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(40.dp),
+                        textAlign = TextAlign.End
+                    )
+                    Text(
+                        text = currencyFormat.format(item.total),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.width(80.dp),
+                        textAlign = TextAlign.End
+                    )
+                }
             }
         }
     }

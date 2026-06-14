@@ -1,19 +1,23 @@
 package com.expensetracker.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.expensetracker.data.sync.SyncPreferences
+import com.expensetracker.widget.QuickEntryWidgetProvider
 import com.expensetracker.data.sync.ThemeMode
 import com.expensetracker.ui.dashboard.DashboardScreen
 import com.expensetracker.ui.entry.EntryScreen
@@ -22,6 +26,7 @@ import com.expensetracker.ui.receipt.ReceiptScreen
 import com.expensetracker.ui.settings.SettingsScreen
 import com.expensetracker.ui.theme.ExpenseTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -29,14 +34,26 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var syncPreferences: SyncPreferences
 
+    private val pendingWidgetCategory = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingWidgetCategory.value = intent.getStringExtra(QuickEntryWidgetProvider.EXTRA_WIDGET_CATEGORY)
         enableEdgeToEdge()
         setContent {
             var themeMode by remember { mutableStateOf(syncPreferences.getThemeMode()) }
+            val widgetCategory by pendingWidgetCategory.collectAsStateWithLifecycle()
 
             ExpenseTrackerTheme(themeMode = themeMode) {
                 val navController = rememberNavController()
+
+                LaunchedEffect(widgetCategory) {
+                    widgetCategory?.let {
+                        navController.navigate("entry") {
+                            popUpTo("expenses")
+                        }
+                    }
+                }
 
                 NavHost(
                     navController = navController,
@@ -53,7 +70,11 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("entry") {
                         EntryScreen(
-                            onBack = { navController.popBackStack() }
+                            initialCategory = widgetCategory,
+                            onBack = {
+                                pendingWidgetCategory.value = null
+                                navController.popBackStack()
+                            }
                         )
                     }
                     composable(
@@ -90,4 +111,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        pendingWidgetCategory.value = intent.getStringExtra(QuickEntryWidgetProvider.EXTRA_WIDGET_CATEGORY)
+    }
 }

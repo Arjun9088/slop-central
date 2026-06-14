@@ -1,5 +1,6 @@
 package com.expensetracker.ui.entry
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
@@ -9,6 +10,7 @@ import com.expensetracker.data.db.entity.Expense
 import com.expensetracker.data.db.entity.defaultCategories
 import com.expensetracker.data.db.entity.defaultPaymentMethods
 import com.expensetracker.data.sync.SyncWorker
+import com.expensetracker.widget.QuickEntryWidgetProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,13 +37,18 @@ data class EntryUiState(
 class EntryViewModel @Inject constructor(
     private val expenseDao: ExpenseDao,
     private val syncPreferences: SyncPreferences,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    private val application: Application
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EntryUiState())
     val uiState: StateFlow<EntryUiState> = _uiState.asStateFlow()
 
     private var editingExpenseId: Long? = null
+
+    fun setInitialCategory(category: String) {
+        _uiState.update { it.copy(category = category) }
+    }
 
     fun loadExpense(id: Long) {
         viewModelScope.launch {
@@ -115,6 +122,7 @@ class EntryViewModel @Inject constructor(
                 }
 
                 SyncWorker.enqueueOneTime(workManager)
+                QuickEntryWidgetProvider.updateWidgets(application)
 
                 _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
             } catch (e: Exception) {

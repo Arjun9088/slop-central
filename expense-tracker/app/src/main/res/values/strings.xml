@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ExpenseTracker</string>
+    <string name="widget_description">Quick-add shortcut buttons for common expense categories. Shows today\'s spending total.</string>
 </resources>

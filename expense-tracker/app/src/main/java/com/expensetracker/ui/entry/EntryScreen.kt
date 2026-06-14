@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EntryScreen(
     expenseId: Long = 0L,
+    initialCategory: String? = null,
     onBack: () -> Unit,
     viewModel: EntryViewModel = hiltViewModel()
 ) {
@@ -67,12 +68,20 @@ fun EntryScreen(
     val descriptionFocusRequester = remember { FocusRequester() }
     val amountFocusRequester = remember { FocusRequester() }
     var showDatePicker by remember { mutableStateOf(false) }
+    var initialCategoryApplied by remember { mutableStateOf(false) }
 
     LaunchedEffect(expenseId) {
         if (expenseId > 0) {
             viewModel.loadExpense(expenseId)
         } else {
             viewModel.resetState()
+        }
+    }
+
+    LaunchedEffect(initialCategory) {
+        if (initialCategory != null && !initialCategoryApplied && expenseId == 0L) {
+            viewModel.setInitialCategory(initialCategory)
+            initialCategoryApplied = true
         }
     }
 
