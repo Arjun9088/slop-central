@@ -81,6 +81,24 @@ interface ArticleDao {
 
     @Query("SELECT * FROM articles WHERE read = 1 ORDER BY readAt DESC")
     suspend fun getAllRead(): List<Article>
+
+    @Query("SELECT COUNT(*) FROM articles WHERE savedAt >= :startOfDayMs AND savedAt < :endOfDayMs")
+    suspend fun countSavedToday(startOfDayMs: Long, endOfDayMs: Long): Int
+
+    @Query("SELECT COUNT(*) FROM articles WHERE read = 1 AND readAt >= :startOfDayMs AND readAt < :endOfDayMs")
+    suspend fun countReadToday(startOfDayMs: Long, endOfDayMs: Long): Int
+
+    @Query("SELECT COALESCE(SUM(wordCount), 0) FROM articles WHERE read = 1 AND readAt >= :startOfDayMs AND readAt < :endOfDayMs")
+    suspend fun totalWordsReadToday(startOfDayMs: Long, endOfDayMs: Long): Int
+
+    @Query("SELECT COALESCE(SUM(wordCount), 0) FROM articles WHERE read = 0 AND savedAt >= :startOfDayMs AND savedAt < :endOfDayMs")
+    suspend fun totalWordsUnreadToday(startOfDayMs: Long, endOfDayMs: Long): Int
+
+    @Query("SELECT COUNT(*) FROM articles WHERE read = 0 AND savedAt >= :startOfDayMs AND savedAt < :endOfDayMs")
+    suspend fun countUnreadToday(startOfDayMs: Long, endOfDayMs: Long): Int
+
+    @Query("SELECT domain, COUNT(*) as count FROM articles WHERE domain != '' AND savedAt >= :startOfDayMs AND savedAt < :endOfDayMs GROUP BY domain ORDER BY count DESC LIMIT :limit")
+    suspend fun getTopDomainsToday(startOfDayMs: Long, endOfDayMs: Long, limit: Int = 1): List<DomainCount>
 }
 
 data class DomainCount(

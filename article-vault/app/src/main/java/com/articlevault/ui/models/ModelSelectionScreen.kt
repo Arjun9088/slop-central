@@ -15,10 +15,11 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
@@ -51,6 +52,7 @@ fun ModelSelectionScreen(
 
     var showBackupDialog by remember { mutableStateOf(false) }
     var backupResultMsg by remember { mutableStateOf<String?>(null) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val activityResult = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -165,6 +167,30 @@ fun ModelSelectionScreen(
         )
     }
 
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = state.notificationHour,
+            initialMinute = state.notificationMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select time") },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setNotificationTime(timePickerState.hour, timePickerState.minute)
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -252,6 +278,24 @@ fun ModelSelectionScreen(
                     title = "Backup & Restore",
                     subtitle = "Export/import database and articles as ZIP",
                     onClick = { showBackupDialog = true }
+                )
+            }
+
+            // ── Notifications section ──
+            SectionHeader("Notifications")
+            SettingsCard {
+                SettingsToggle(
+                    icon = Icons.Default.Notifications,
+                    title = "Daily Reading Summary",
+                    subtitle = "Receive a daily notification with your reading stats",
+                    checked = state.notificationEnabled,
+                    onCheckedChange = { viewModel.setNotificationEnabled(it) }
+                )
+                SettingsClickable(
+                    icon = Icons.Default.Star,
+                    title = "Notification time",
+                    subtitle = String.format("%02d:%02d", state.notificationHour, state.notificationMinute),
+                    onClick = { showTimePicker = true }
                 )
             }
 

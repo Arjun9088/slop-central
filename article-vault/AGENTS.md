@@ -5,10 +5,14 @@
 JAVA_HOME must point to Android Studio's bundled JBR:
 ```
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-.\gradlew.bat installDebug    # build + install to connected device
-.\gradlew.bat assembleDebug   # build only
+.\gradlew.bat installRelease   # build release + install to device (USE THIS for device installs)
+.\gradlew.bat assembleDebug    # compile check only (fast, no R8)
 ```
 ADB lives at `C:\Users\Arjun\platform-tools\adb.exe` (not on PATH by default).
+
+**Always use `installRelease` for device installs.** Debug builds lack R8 optimization and make the app noticeably laggy. `assembleDebug` is fine for quick compile checks.
+
+**Release signing** uses the debug keystore (`~/.android/debug.keystore`, alias `androiddebugkey`, password `android`) configured in `app/build.gradle.kts`. No separate release keystore exists — we reuse the debug key for local device testing.
 
 ## Architecture
 
@@ -17,11 +21,13 @@ Single-module Android app. All source under `app/src/main/java/com/articlevault/
 | Layer | Key files |
 |---|---|
 | Data | `data/db/entity/Article.kt`, `data/db/dao/ArticleDao.kt`, `data/repository/ArticleRepository.kt` |
+| Prefs | `data/ThemePreferences.kt`, `data/ReadingPreferences.kt`, `data/NotificationPreferences.kt` |
 | DI | `di/AppModule.kt` — provides Room DB, WorkManager, DAOs |
-| Workers | `worker/DownloadWorker.kt`, `ExtractWorker.kt`, `TagWorker.kt` |
-| ML | `ml/LlmSummarizer.kt`, `ml/TagClassifier.kt` |
+| Workers | `worker/DownloadWorker.kt`, `ExtractWorker.kt`, `TagWorker.kt`, `SummarizeWorker.kt`, `DailyStatsWorker.kt` |
+| Scheduling | `worker/DailyStatsScheduler.kt` — periodic work for daily notifications |
+| ML | `ml/LlmSummarizer.kt`, `ml/TagClassifier.kt`, `ml/DomainClassifier.kt` |
 | Models | `data/model/ModelRepository.kt`, `ui/models/ModelSelectionScreen.kt` |
-| UI | `ui/MainActivity.kt` (nav host), `ui/list/`, `ui/detail/`, `ui/search/` |
+| UI | `ui/MainActivity.kt` (nav host), `ui/list/`, `ui/detail/`, `ui/search/`, `ui/stats/` |
 
 ## Critical Gotchas
 
@@ -36,8 +42,18 @@ Single-module Android app. All source under `app/src/main/java/com/articlevault/
 ### WorkManager
 - All workers **must** have `@HiltWorker` annotation or they silently fail.
 - Default WorkManager initializer is **disabled** in manifest (we use `Configuration.Provider` in `ArticleVaultApp`).
-- Worker chain: `Download → Extract → Tag`. No IndexWorker (DownloadWorker saves directly to DB).
+- Worker chain: `Download → Extract → Tag → Summarize`. No IndexWorker (DownloadWorker saves directly to DB).
 - WorkManager `Data` has a **~10KB limit**. Large text must be saved to DB/files first, not passed through the chain.
+- Periodic workers use `ExistingPeriodicWorkPolicy` (not `ExistingWorkPolicy`). For rescheduling on time change, cancel + re-enqueue with `REPLACE`.
+
+### Daily Stats Notification
+- `DailyStatsWorker` is a periodic `@HiltWorker` (24h interval, computed initial delay to hit user's chosen time).
+- `DailyStatsScheduler` manages scheduling. Called on app startup (`ArticleVaultApp.onCreate()`) and when user changes prefs.
+- `NotificationPreferences` stores: `enabled` (default `false`), `hour` (default `18` = 6 PM), `minute` (default `0`).
+- Notification channel: `"daily_stats"` with `IMPORTANCE_DEFAULT` (separate from `"article_saved"` channel).
+- Worker checks `NotificationManager.areNotificationsEnabled()` before posting — silently skips if notifications disabled.
+- No new DAO queries today-scoped and injected into the worker directly via repository. No schema changes needed.
+- Settings UI lives in `ModelSelectionScreen.kt` under "Notifications" section (toggle + `TimePicker` dialog via Material3).
 
 ### DownloadWorker
 - WebView **must** run on `Dispatchers.Main`. Uses `withContext(Dispatchers.Main)` + `suspendCancellableCoroutine`.
@@ -62,6 +78,7 @@ Single-module Android app. All source under `app/src/main/java/com/articlevault/
 - Long-press on article cards → context menu (Summarize / Delete).
 - Summaries stored in `Article.summary` column. Can be regenerated.
 - `Icons.Default.Bookmark` does not exist — use `Icons.Default.Star` or `Icons.AutoMirrored.Filled.List`.
+- No `material-icons-extended` dependency. Only default Material Icons are available. `Schedule`, `AccessTime`, `Notifications` etc. are NOT available — stick to the core set.
 
 ### ML Kit Entity Extraction
 - Dependency: `com.google.mlkit:entity-extraction:16.0.0-beta6` (not stable).

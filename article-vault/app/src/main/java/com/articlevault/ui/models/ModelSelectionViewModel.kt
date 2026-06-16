@@ -3,9 +3,11 @@ package com.articlevault.ui.models
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.articlevault.data.BackupManager
+import com.articlevault.data.NotificationPreferences
 import com.articlevault.data.ThemePreferences
 import com.articlevault.data.model.ModelRepository
 import com.articlevault.ml.LlmSummarizer
+import com.articlevault.worker.DailyStatsScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,10 @@ import java.io.File
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val error: String? = null
+    val error: String? = null,
+    val notificationEnabled: Boolean = false,
+    val notificationHour: Int = 18,
+    val notificationMinute: Int = 0
 )
 
 @HiltViewModel
@@ -23,11 +28,21 @@ class ModelSelectionViewModel @Inject constructor(
     private val modelRepository: ModelRepository,
     private val llmSummarizer: LlmSummarizer,
     private val backupManager: BackupManager,
-    private val themePreferences: ThemePreferences
+    private val themePreferences: ThemePreferences,
+    private val notificationPreferences: NotificationPreferences,
+    private val dailyStatsScheduler: DailyStatsScheduler
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+
+    init {
+        _state.value = _state.value.copy(
+            notificationEnabled = notificationPreferences.enabled,
+            notificationHour = notificationPreferences.hour,
+            notificationMinute = notificationPreferences.minute
+        )
+    }
 
     fun isDarkMode(): Boolean = themePreferences.isDarkMode
 
@@ -62,5 +77,18 @@ class ModelSelectionViewModel @Inject constructor(
                 _state.value = _state.value.copy(error = result.error)
             }
         }
+    }
+
+    fun setNotificationEnabled(enabled: Boolean) {
+        notificationPreferences.enabled = enabled
+        _state.value = _state.value.copy(notificationEnabled = enabled)
+        dailyStatsScheduler.scheduleIfEnabled()
+    }
+
+    fun setNotificationTime(hour: Int, minute: Int) {
+        notificationPreferences.hour = hour
+        notificationPreferences.minute = minute
+        _state.value = _state.value.copy(notificationHour = hour, notificationMinute = minute)
+        dailyStatsScheduler.scheduleIfEnabled()
     }
 }

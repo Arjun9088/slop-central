@@ -68,4 +68,12 @@ class ArticleRepository @Inject constructor(
     suspend fun getReadTimestamps(): List<Long> = articleDao.getReadTimestamps()
     suspend fun getAllSavedTimestamps(): List<Long> = articleDao.getAllSavedTimestamps()
     suspend fun getAllRead(): List<Article> = articleDao.getAllRead()
+
+    suspend fun countSavedToday(s: Long, e: Long): Int = articleDao.countSavedToday(s, e)
+    suspend fun countReadToday(s: Long, e: Long): Int = articleDao.countReadToday(s, e)
+    suspend fun totalWordsReadToday(s: Long, e: Long): Int = articleDao.totalWordsReadToday(s, e)
+    suspend fun totalWordsUnreadToday(s: Long, e: Long): Int = articleDao.totalWordsUnreadToday(s, e)
+    suspend fun countUnreadToday(s: Long, e: Long): Int = articleDao.countUnreadToday(s, e)
+    suspend fun getTopDomainsToday(s: Long, e: Long, limit: Int = 1): List<DomainCount> =
+        articleDao.getTopDomainsToday(s, e, limit)
 }
